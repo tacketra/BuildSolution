@@ -16,6 +16,8 @@ namespace BuildSolution
             public static readonly string BuildOutputPath = "BuiltProjectOutputGroupKeyOutput";
             public static readonly string CompilePath = "Compile";
             public static readonly string Reference = "Reference";
+            public static readonly string PropOutputPath = "OutputPath";
+            public static readonly string PropOutputFileName = "TargetFileName";
         }
 
         public FileInfo ProjectPath { get; set; }
@@ -28,6 +30,8 @@ namespace BuildSolution
 
         public List<ProjectFile> ReferenceProjects { get; set; }
 
+        public bool NeedsToBeBuilt { get; set; }
+
         public ProjectFile()
         {
 
@@ -37,13 +41,18 @@ namespace BuildSolution
         {
             Project project = new Project(file.FullName); // item = metadata , directMetadata count > 0 . metadata[x] where name = HintPath then evaluatedInlcude of that
             this.ProjectPath = new FileInfo(project.FullPath);
-            
-            this.BuildProjectOutputPath = new FileInfo(project.Items.Single(item => item.ItemType.Equals(ProjectItemTypes.BuildOutputPath)).EvaluatedInclude); // EvaluatedInclude
+
+            ////this.BuildProjectOutputPath = new FileInfo(project.Items.Single(item => item.ItemType.Equals(ProjectItemTypes.BuildOutputPath)).EvaluatedInclude); // EvaluatedInclude
+            var dirName = file.DirectoryName;
+            var outName = project.Properties.Single(prop1 => prop1.Name.Equals(ProjectItemTypes.PropOutputPath)).EvaluatedValue;
+            var fileName = project.Properties.Single(prop2 => prop2.Name.Equals(ProjectItemTypes.PropOutputFileName)).EvaluatedValue;
+            var temp = dirName + "\\" + outName + fileName;
+            this.BuildProjectOutputPath = new FileInfo(file.DirectoryName + "\\" + project.Properties.Single(prop1 => prop1.Name.Equals(ProjectItemTypes.PropOutputPath)).EvaluatedValue + project.Properties.Single(prop2 => prop2.Name.Equals(ProjectItemTypes.PropOutputFileName)).EvaluatedValue);
 
             this.ProjectClassPaths = project.Items.Where(item => item.ItemType.Equals(ProjectItemTypes.CompilePath)).Select(item => new FileInfo(file.DirectoryName + item.EvaluatedInclude)).ToList();
 
             var refs = project.Items.Where(item => item.ItemType.Equals(ProjectItemTypes.Reference)).Where(refItem => refItem.Metadata.Any() && refItem.Metadata.Where(meta => meta.Name.Equals("HintPath")).Any()).Select(meta2 =>meta2.Metadata.Single(x => x.Name.Equals("HintPath"))); // Select(meta2 => meta2 // Select(fileInf => new FileInfo(fileInf.Metadata.Where(x => x.Name.Equals("HintPath")).Select(metaPath => metaPath.)
-            this.ReferencePaths = refs.Select(item => new FileInfo(file.DirectoryName + item.EvaluatedValue)).ToList();
+            this.ReferencePaths = refs.Select(item => new FileInfo(Path.Combine(file.DirectoryName, item.EvaluatedValue))).ToList();
 
             var hello = "hello";
         }
@@ -52,12 +61,13 @@ namespace BuildSolution
         {
             foreach (var proj in projectFiles)
             {
-                var refPaths = proj.ReferencePaths.Select(x => x.FullName).ToList();
-                var stuff = projectFiles.Where(x => refPaths.Contains(x.BuildProjectOutputPath.FullName)).ToList();
-                proj.ReferenceProjects = stuff;
+                var refPaths = proj.ReferencePaths.Select(x => FileHelper.NormalizePath(x.FullName)).ToList();
+                proj.ReferenceProjects = projectFiles.Where(x => refPaths.Contains(FileHelper.NormalizePath(x.BuildProjectOutputPath.FullName))).ToList();
             }
         }
 
+
+        // deleteme
         public static string GetCSProjOutputPath(string file)
         {
             XmlDocument doc = new XmlDocument();

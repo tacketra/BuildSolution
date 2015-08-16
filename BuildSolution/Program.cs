@@ -105,7 +105,7 @@ namespace BuildSolution
                 string compilePath  = ProjectFile.GetCSProjOutputPath(f);
 
                 string pathWithoutProjFile = string.Empty, projFileName = string.Empty;
-                pathWithoutProjFile = Program.removeFileNameFromPath(f, out projFileName);
+                pathWithoutProjFile = FileHelper.removeFileNameFromPath(f, out projFileName);
                 string binPath = pathWithoutProjFile + compilePath;
 
                 string[] binFiles = Directory.GetFiles(binPath);
@@ -123,21 +123,6 @@ namespace BuildSolution
                 ////XmlNode node = doc.DocumentElement.SelectSingleNode("Project/PropertyGroup");
                 ////XmlNode node = doc.DocumentElement.SelectSingleNode("Project/PropertyGroup/OutputPath");
             }
-        }
-
-        public static string removeFileNameFromPath(string f)
-        {
-            int lastSlash = f.LastIndexOf("\\");
-            return f.Substring(0, lastSlash + 1);
-        }
-
-        // returns with out filename (lopping off ext)
-        public static string removeFileNameFromPath(string f, out string filename)
-        {
-            int lastSlash = f.LastIndexOf("\\");
-            int lastPeriod = f.LastIndexOf(".");
-            filename = f.Substring(lastSlash + 1, lastPeriod - lastSlash - 1);
-            return f.Substring(0, lastSlash + 1);
         }
 
         static void Main(string[] args)
