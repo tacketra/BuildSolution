@@ -85,8 +85,9 @@ namespace BuildSolution
 
         public static void BuildTest(string rootPath)
         {
-            List<ProjectFile> files = Directory.GetFiles(rootPath, "*.csproj", SearchOption.AllDirectories).Select(file => new ProjectFile(new FileInfo(file))).ToList();
-            
+            List<ProjectFile> projectFiles = Directory.GetFiles(rootPath, "*.csproj", SearchOption.AllDirectories).Select(file => new ProjectFile(new FileInfo(file))).ToList();
+            ProjectFile.PopulateReferenceProjects(projectFiles);
+
             XmlDocument xmldoc = new XmlDocument();
             xmldoc.Load(rootPath);
 
