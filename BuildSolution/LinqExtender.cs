@@ -13,7 +13,7 @@ namespace BuildSolution
         {
             if (source.Count() == 0)
             {
-                throw new InvalidOperationException("Cannot compute median for an empty set.");
+                throw new InvalidOperationException("Cannot compute median for an empty set.");  // 
             }
 
             var sortedList = from number in source

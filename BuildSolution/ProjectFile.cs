@@ -1,5 +1,7 @@
-﻿using System;
+﻿using Microsoft.Build.Evaluation;
+using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
@@ -9,13 +11,32 @@ namespace BuildSolution
 {
     class ProjectFile
     {
+        class ProjectItemTypes
+        {
+            public static readonly string BuildOutputPath = "BuiltProjectOutputGroupKeyOutput";
+            public static readonly string CompilePath = "Compile";
+        }
+
+        public FileInfo ProjectPath { get; set; }
+
+        public FileInfo BuildProjectOutputPath { get; set; }
+
+        public List<FileInfo> ProjectClassPaths { get; set; }
+
         public ProjectFile()
         {
 
         }
 
-        public ProjectFile(string filepath)
+        public ProjectFile(FileInfo file)
         {
+            Project project = new Project(file.FullName);
+            this.ProjectPath = new FileInfo(project.FullPath);
+            
+            this.BuildProjectOutputPath = new FileInfo(project.Items.Single(item => item.ItemType.Equals(ProjectItemTypes.BuildOutputPath)).EvaluatedInclude); // EvaluatedInclude
+
+            this.ProjectClassPaths = project.Items.Where(item => item.ItemType.Equals(ProjectItemTypes.CompilePath)).Select(item => new FileInfo(file.DirectoryName + item.EvaluatedInclude)).ToList();
+            var hello = "hello";
         }
 
         public static string GetCSProjOutputPath(string file)

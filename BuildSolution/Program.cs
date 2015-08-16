@@ -1,4 +1,5 @@
-﻿using Microsoft.CSharp;
+﻿using Microsoft.Build.Evaluation;
+using Microsoft.CSharp;
 using System;
 using System.CodeDom.Compiler;
 using System.Collections.Generic;
@@ -82,6 +83,18 @@ namespace BuildSolution
             }
         }
 
+        public static void BuildTest(string rootPath)
+        {
+            List<ProjectFile> files = Directory.GetFiles(rootPath, "*.csproj", SearchOption.AllDirectories).Select(file => new ProjectFile(new FileInfo(file))).ToList();
+            
+            XmlDocument xmldoc = new XmlDocument();
+            xmldoc.Load(rootPath);
+
+            XmlNamespaceManager ns = new XmlNamespaceManager(xmldoc.NameTable);
+            ns.AddNamespace("msbld", "http://schemas.microsoft.com/developer/msbuild/2003");
+            XmlNode node = xmldoc.SelectSingleNode("//msbld:TheNodeIWant", ns);
+        }
+
         public static void BuildAllSolutions(string rootPath)
         {
             ////string[] files = Directory.GetFiles(rootPath, "*.sln", SearchOption.AllDirectories);
@@ -129,7 +142,8 @@ namespace BuildSolution
         static void Main(string[] args)
         {
             string root = @"C:\Users\tacke\Documents\Visual Studio 2015\Projects";
-            BuildAllSolutions(root);
+            BuildTest(root);
+            //// BuildAllSolutions(root);
 
             string solutionToBuildPath = @"""C:\Users\tacke\Documents\visual studio 2015\Projects\helloTest\helloTest.sln""";
             BuildSolution(solutionToBuildPath);
