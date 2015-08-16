@@ -30,7 +30,7 @@ namespace BuildSolution
 
         public List<ProjectFile> ReferenceProjects { get; set; }
 
-        public bool NeedsToBeBuilt { get; set; }
+        public bool? NeedsToBeBuilt { get; set; }
 
         public ProjectFile()
         {
@@ -49,7 +49,7 @@ namespace BuildSolution
             var temp = dirName + "\\" + outName + fileName;
             this.BuildProjectOutputPath = new FileInfo(file.DirectoryName + "\\" + project.Properties.Single(prop1 => prop1.Name.Equals(ProjectItemTypes.PropOutputPath)).EvaluatedValue + project.Properties.Single(prop2 => prop2.Name.Equals(ProjectItemTypes.PropOutputFileName)).EvaluatedValue);
 
-            this.ProjectClassPaths = project.Items.Where(item => item.ItemType.Equals(ProjectItemTypes.CompilePath)).Select(item => new FileInfo(file.DirectoryName + item.EvaluatedInclude)).ToList();
+            this.ProjectClassPaths = project.Items.Where(item => item.ItemType.Equals(ProjectItemTypes.CompilePath)).Select(item => new FileInfo(file.DirectoryName + "\\" + item.EvaluatedInclude)).ToList();
 
             var refs = project.Items.Where(item => item.ItemType.Equals(ProjectItemTypes.Reference)).Where(refItem => refItem.Metadata.Any() && refItem.Metadata.Where(meta => meta.Name.Equals("HintPath")).Any()).Select(meta2 =>meta2.Metadata.Single(x => x.Name.Equals("HintPath"))); // Select(meta2 => meta2 // Select(fileInf => new FileInfo(fileInf.Metadata.Where(x => x.Name.Equals("HintPath")).Select(metaPath => metaPath.)
             this.ReferencePaths = refs.Select(item => new FileInfo(Path.Combine(file.DirectoryName, item.EvaluatedValue))).ToList();
@@ -66,6 +66,14 @@ namespace BuildSolution
             }
         }
 
+        public static void PopulateNeedsToBeBuilt(ProjectFile projectFile)
+        {
+            var curProjBuiltTime = projectFile.BuildProjectOutputPath.LastWriteTime;
+            var curProjNeedsToBeBuilt = File.Exists(projectFile.BuildProjectOutputPath.FullName) ? projectFile.ProjectClassPaths.Any(classFile => classFile.LastWriteTime > curProjBuiltTime) : true;
+            projectFile.ReferenceProjects.Where(proj1 => proj1.NeedsToBeBuilt == null).RunFuncForEach(proj => ProjectFile.PopulateNeedsToBeBuilt(proj));//.Where(x => x.NeedsToBeBuilt.Value).Any();
+            var anyRefProjsNeedingBuild = projectFile.ReferenceProjects.Where(x => x.NeedsToBeBuilt.Value).Any();
+            projectFile.NeedsToBeBuilt = (curProjNeedsToBeBuilt || anyRefProjsNeedingBuild);
+        }
 
         // deleteme
         public static string GetCSProjOutputPath(string file)

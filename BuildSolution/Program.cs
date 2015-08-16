@@ -87,7 +87,9 @@ namespace BuildSolution
         {
             List<ProjectFile> projectFiles = Directory.GetFiles(rootPath, "*.csproj", SearchOption.AllDirectories).Select(file => new ProjectFile(new FileInfo(file))).ToList();
             ProjectFile.PopulateReferenceProjects(projectFiles);
+            projectFiles.RunFuncForEach(x => ProjectFile.PopulateNeedsToBeBuilt(x));
 
+            var projsToBuild = projectFiles.Where(proj => proj.NeedsToBeBuilt.Value).ToList();
             XmlDocument xmldoc = new XmlDocument();
             xmldoc.Load(rootPath);
 
