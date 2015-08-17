@@ -66,6 +66,12 @@ namespace BuildSolution
             }
         }
 
+        public List<ProjectFile> GetCorrectBuildOrder(List<ProjectFile> projectFiles)
+        {
+            var retProjFiles = new List<ProjectFile>();
+            
+        }
+
         public static void PopulateNeedsToBeBuilt(ProjectFile projectFile)
         {
             var curProjBuiltTime = projectFile.BuildProjectOutputPath.LastWriteTime;

@@ -91,11 +91,11 @@ namespace BuildSolution
 
             var projsToBuild = projectFiles.Where(proj => proj.NeedsToBeBuilt.Value).ToList();
             XmlDocument xmldoc = new XmlDocument();
-            xmldoc.Load(rootPath);
+            ////xmldoc.Load(rootPath);
 
-            XmlNamespaceManager ns = new XmlNamespaceManager(xmldoc.NameTable);
-            ns.AddNamespace("msbld", "http://schemas.microsoft.com/developer/msbuild/2003");
-            XmlNode node = xmldoc.SelectSingleNode("//msbld:TheNodeIWant", ns);
+            ////XmlNamespaceManager ns = new XmlNamespaceManager(xmldoc.NameTable);
+            ////ns.AddNamespace("msbld", "http://schemas.microsoft.com/developer/msbuild/2003");
+            ////XmlNode node = xmldoc.SelectSingleNode("//msbld:TheNodeIWant", ns);
         }
 
         public static void BuildAllSolutions(string rootPath)
