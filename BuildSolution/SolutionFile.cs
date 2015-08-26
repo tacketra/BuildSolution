@@ -38,20 +38,20 @@ namespace BuildSolution
             ProjectFile.PopulateReferenceProjects(solution.ProjectFiles);
             ProjectFile.PopulateNeedsToBeBuilt(solution.ProjectFiles);
 
-            var projsToBuild = solution.ProjectFiles.Where(proj => proj.NeedsToBeBuilt.Value).ToList();
-
+            // remove below
             Console.WriteLine("solution projects ");
             solution.ProjectFiles.RunFuncForEach(x => Console.WriteLine(x.ProjectPath));
             Console.WriteLine("\n projects that need to be built for solution");
+            var projsToBuild = solution.ProjectFiles.Where(proj => proj.NeedsToBeBuilt.Value).ToList();
             projsToBuild.RunFuncForEach(x => Console.WriteLine(x.ProjectPath));
 
 
+            Console.WriteLine("\n Correct build order");
+            solution.ProjectFiles.RunFuncForEach(x => Console.WriteLine(x.ProjectPath));
+            // remove above
 
-            ////xmldoc.Load(rootPath);
+            ProjectFile.GetCorrectBuildOrder(solution.ProjectFiles);
 
-            ////XmlNamespaceManager ns = new XmlNamespaceManager(xmldoc.NameTable);
-            ////ns.AddNamespace("msbld", "http://schemas.microsoft.com/developer/msbuild/2003");
-            ////XmlNode node = xmldoc.SelectSingleNode("//msbld:TheNodeIWant", ns);
         }
 
         public static string GetCurrentSolution()

@@ -64,9 +64,18 @@ namespace BuildSolution
             }
         }
 
-        public List<ProjectFile> GetCorrectBuildOrder(List<ProjectFile> projectFiles)
+        public static List<ProjectFile> GetCorrectBuildOrder(List<ProjectFile> projectFiles)
         {
             var retProjFiles = new List<ProjectFile>();
+            while (projectFiles.Count != 0)
+            {
+                ProjectFile proj = projectFiles.Find(x => x.ReferenceProjects.Count == 0 || x.ReferenceProjects.TrueForAll(y => retProjFiles.Contains(y)));
+                retProjFiles.Add(proj);
+                projectFiles.Remove(proj);
+            }
+
+            projectFiles = retProjFiles;
+            return retProjFiles;
         }
 
         public static void PopulateNeedsToBeBuilt(List<ProjectFile> projectList)
@@ -81,33 +90,6 @@ namespace BuildSolution
             projectFile.ReferenceProjects.Where(proj1 => proj1.NeedsToBeBuilt == null).RunFuncForEach(proj => ProjectFile.PopulateNeedsToBeBuilt(proj));//.Where(x => x.NeedsToBeBuilt.Value).Any();
             var anyRefProjsNeedingBuild = projectFile.ReferenceProjects.Where(x => x.NeedsToBeBuilt.Value).Any();
             projectFile.NeedsToBeBuilt = (curProjNeedsToBeBuilt || anyRefProjsNeedingBuild);
-        }
-
-        // deleteme
-        public static string GetCSProjOutputPath(string file)
-        {
-            XmlDocument doc = new XmlDocument();
-            doc.Load(file);
-            //// var propGroupNodes = doc.DocumentElement.SelectNodes("/PropertyGroup");
-            var nodes = doc.DocumentElement.ChildNodes;
-
-            foreach (XmlNode node in nodes)
-            {
-                if (node.OuterXml.Contains("Debug|"))// && !node.InnerXml.Contains("Release") && node.Attributes.Count > 0)
-                {
-                    var innerChildNodes = node.ChildNodes;
-                    foreach (XmlNode innerNode in innerChildNodes)
-                    {
-                        if (innerNode.Name.Equals("OutputPath"))
-                        {
-                            return innerNode.InnerText;
-                        }
-
-                    }
-                }
-            }
-
-            return string.Empty;
         }
     }
 }

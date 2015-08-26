@@ -13,6 +13,7 @@ using Microsoft.VisualStudio.Shell.Interop;
 using System.Reflection;
 using System.IO;
 using System.Diagnostics;
+using BuildSolution;
 
 namespace MenuCommand
 {
@@ -100,8 +101,7 @@ namespace MenuCommand
             string message = string.Format(CultureInfo.CurrentCulture, "Inside {0}.MenuItemCallback()", this.GetType().FullName);
             string title = "BuildDependencies";
             String solutionName = Path.GetFileName(Process.GetCurrentProcess().MainModule.FileName);
-            SolutionFile solution = new SolutionFile();
-            solution.BuildSolution();
+
             // Show a message box to prove we were here
             VsShellUtilities.ShowMessageBox(
                 this.ServiceProvider,
@@ -110,6 +110,9 @@ namespace MenuCommand
                 OLEMSGICON.OLEMSGICON_INFO,
                 OLEMSGBUTTON.OLEMSGBUTTON_OK,
                 OLEMSGDEFBUTTON.OLEMSGDEFBUTTON_FIRST);
+
+            SolutionFile solution = new SolutionFile();
+            solution.BuildSolution();
         }
     }
 }

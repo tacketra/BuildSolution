@@ -110,72 +110,51 @@ namespace BuildSolution
             ////XmlNode node = xmldoc.SelectSingleNode("//msbld:TheNodeIWant", ns);
         }
 
-        public static void BuildAllSolutions(string rootPath)
-        {
-            ////string[] files = Directory.GetFiles(rootPath, "*.sln", SearchOption.AllDirectories);
-            string[] files = Directory.GetFiles(rootPath, "*.csproj", SearchOption.AllDirectories);
-            foreach (var f in files)
-            {
-                string compilePath  = ProjectFile.GetCSProjOutputPath(f);
+        ////public static void BuildAllSolutions(string rootPath)
+        ////{
+        ////    ////string[] files = Directory.GetFiles(rootPath, "*.sln", SearchOption.AllDirectories);
+        ////    string[] files = Directory.GetFiles(rootPath, "*.csproj", SearchOption.AllDirectories);
+        ////    foreach (var f in files)
+        ////    {
+        ////        string compilePath  = ProjectFile.GetCSProjOutputPath(f);
 
-                string pathWithoutProjFile = string.Empty, projFileName = string.Empty;
-                pathWithoutProjFile = FileHelper.removeFileNameFromPath(f, out projFileName);
-                string binPath = pathWithoutProjFile + compilePath;
+        ////        string pathWithoutProjFile = string.Empty, projFileName = string.Empty;
+        ////        pathWithoutProjFile = FileHelper.removeFileNameFromPath(f, out projFileName);
+        ////        string binPath = pathWithoutProjFile + compilePath;
 
-                string[] binFiles = Directory.GetFiles(binPath);
-                string buildFile = binFiles.Single(x => x.EndsWith(projFileName + ".dll") || x.EndsWith(projFileName + ".exe"));
+        ////        string[] binFiles = Directory.GetFiles(binPath);
+        ////        string buildFile = binFiles.Single(x => x.EndsWith(projFileName + ".dll") || x.EndsWith(projFileName + ".exe"));
 
-                string[] classFiles = Directory.GetFiles(pathWithoutProjFile, "*.cs", SearchOption.AllDirectories);
-                classFiles = classFiles.Where(x => !x.Contains("TemporaryGeneratedFile")).ToArray();
-                foreach (string fil in classFiles)
-                {
-                    Console.WriteLine(fil);
-                }
-
-
-                Console.WriteLine(buildFile);
-                ////XmlNode node = doc.DocumentElement.SelectSingleNode("Project/PropertyGroup");
-                ////XmlNode node = doc.DocumentElement.SelectSingleNode("Project/PropertyGroup/OutputPath");
-            }
-        }
-
-        static void Main(string[] args)
-        {
-            SolutionFile solution = new SolutionFile();
-            solution.BuildSolution();
-
-            Console.Read();
-
-            string root = @"C:\Users\tacke\Documents\Visual Studio 2015\Projects";
-            BuildTest(root);
-            //// BuildAllSolutions(root);
-
-            string solutionToBuildPath = @"""C:\Users\tacke\Documents\visual studio 2015\Projects\helloTest\helloTest.sln""";
-            BuildSolution(solutionToBuildPath);
+        ////        string[] classFiles = Directory.GetFiles(pathWithoutProjFile, "*.cs", SearchOption.AllDirectories);
+        ////        classFiles = classFiles.Where(x => !x.Contains("TemporaryGeneratedFile")).ToArray();
+        ////        foreach (string fil in classFiles)
+        ////        {
+        ////            Console.WriteLine(fil);
+        ////        }
 
 
+        ////        Console.WriteLine(buildFile);
+        ////        ////XmlNode node = doc.DocumentElement.SelectSingleNode("Project/PropertyGroup");
+        ////        ////XmlNode node = doc.DocumentElement.SelectSingleNode("Project/PropertyGroup/OutputPath");
+        ////    }
+        ////}
 
-            Console.ReadLine();
-            ////CSharpCodeProvider codeProvider = new CSharpCodeProvider();
-            ////////icodecompiler icc = codeprovider.createcompiler();
+        // delete me
+        ////static void Main(string[] args)
+        ////{
+        ////    SolutionFile solution = new SolutionFile();
+        ////    solution.BuildSolution();
 
-            ////CompilerParameters parameters = new CompilerParameters();
-            ////parameters.GenerateExecutable = false;
-            ////parameters.OutputAssembly = "OutputAsemb";
-            ////CompilerResults results = codeProvider.CompileAssemblyFromSource(parameters, SourceString);
+        ////    Console.Read();
 
-            ////string outputError = string.Empty;
-            ////if (results.Errors.Count > 0)
-            ////{
-            ////    foreach (CompilerError CompErr in results.Errors)
-            ////    {
-            ////        outputError = outputError + 
-            ////            "Line number " + CompErr.Line +
-            ////            ", Error Number: " + CompErr.ErrorNumber +
-            ////            ", '" + CompErr.ErrorText + ";" +
-            ////            Environment.NewLine + Environment.NewLine;
-            ////    }
-            ////}
-        }
+        ////    string root = @"C:\Users\tacke\Documents\Visual Studio 2015\Projects";
+        ////    BuildTest(root);
+        ////    //// BuildAllSolutions(root);
+
+        ////    string solutionToBuildPath = @"""C:\Users\tacke\Documents\visual studio 2015\Projects\helloTest\helloTest.sln""";
+        ////    BuildSolution(solutionToBuildPath);
+
+        ////    Console.ReadLine();
+        ////}
     }
 }
