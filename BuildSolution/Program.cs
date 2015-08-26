@@ -12,10 +12,22 @@ using System.Text;
 using System.Threading.Tasks;
 using System.Xml;
 
+using System.Reflection;
+using System.IO;
+using System.Diagnostics;
+using System.ComponentModel;
+using EnvDTE;
+using EnvDTE80;
+using Microsoft.VisualStudio.Shell;
+using System.ComponentModel.Composition;
+
 namespace BuildSolution
 {
     class Program
     {
+        [Import(typeof(SVsServiceProvider))]
+        IServiceProvider ServiceProvider
+        { get; set; }
         ////public static string MsBuildPath = @"C:\Program Files\MSBuild\14.0\Bin\MSBuild";
         public static string MsBuildPath = @"C:\Windows\Microsoft.NET\Framework\v4.0.30319\MSBuild.exe";
         ////public static string BuildArgument = "'{0}' /t:Build /p:Configuration=Debug";
@@ -47,7 +59,7 @@ namespace BuildSolution
                 processStartInfo.RedirectStandardOutput = true;
                 processStartInfo.UseShellExecute = false;
                 processStartInfo.WorkingDirectory = workingDirectory;
-                Process process = new Process();
+                System.Diagnostics.Process process = new System.Diagnostics.Process();
                 process.StartInfo = processStartInfo;
                 //// Process process = Process.Start(processStartInfo);
                 process.Start();
@@ -129,6 +141,11 @@ namespace BuildSolution
 
         static void Main(string[] args)
         {
+            SolutionFile solution = new SolutionFile();
+            solution.BuildSolution();
+
+            Console.Read();
+
             string root = @"C:\Users\tacke\Documents\Visual Studio 2015\Projects";
             BuildTest(root);
             //// BuildAllSolutions(root);

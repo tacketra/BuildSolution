@@ -53,8 +53,6 @@ namespace BuildSolution
 
             var refs = project.Items.Where(item => item.ItemType.Equals(ProjectItemTypes.Reference)).Where(refItem => refItem.Metadata.Any() && refItem.Metadata.Where(meta => meta.Name.Equals("HintPath")).Any()).Select(meta2 =>meta2.Metadata.Single(x => x.Name.Equals("HintPath"))); // Select(meta2 => meta2 // Select(fileInf => new FileInfo(fileInf.Metadata.Where(x => x.Name.Equals("HintPath")).Select(metaPath => metaPath.)
             this.ReferencePaths = refs.Select(item => new FileInfo(Path.Combine(file.DirectoryName, item.EvaluatedValue))).ToList();
-
-            var hello = "hello";
         }
 
         public static void PopulateReferenceProjects(List<ProjectFile> projectFiles)
@@ -69,7 +67,11 @@ namespace BuildSolution
         public List<ProjectFile> GetCorrectBuildOrder(List<ProjectFile> projectFiles)
         {
             var retProjFiles = new List<ProjectFile>();
-            
+        }
+
+        public static void PopulateNeedsToBeBuilt(List<ProjectFile> projectList)
+        {
+            projectList.RunFuncForEach(x => ProjectFile.PopulateNeedsToBeBuilt(x));
         }
 
         public static void PopulateNeedsToBeBuilt(ProjectFile projectFile)

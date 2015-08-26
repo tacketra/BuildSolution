@@ -1,4 +1,5 @@
-﻿using System;
+﻿using EnvDTE;
+using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
@@ -35,7 +36,5 @@ namespace BuildSolution
             filename = f.Substring(lastSlash + 1, lastPeriod - lastSlash - 1);
             return f.Substring(0, lastSlash + 1);
         }
-
-
     }
 }
