@@ -4,6 +4,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
+// remove this comment, just testing github visual studio 2015 setup in win 10
 namespace BuildSolution
 {
     public static class LinqExtender 
