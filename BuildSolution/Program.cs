@@ -26,13 +26,15 @@ namespace BuildSolution
     class Program
     {
         [Import(typeof(SVsServiceProvider))]
-        IServiceProvider ServiceProvider
-        { get; set; }
+        IServiceProvider ServiceProvider { get; set; }
+
         ////public static string MsBuildPath = @"C:\Program Files\MSBuild\14.0\Bin\MSBuild";
         public static string MsBuildPath = @"C:\Windows\Microsoft.NET\Framework\v4.0.30319\MSBuild.exe";
         ////public static string BuildArgument = "'{0}' /t:Build /p:Configuration=Debug";
         ////public static string BuildArgument = "'{0}' /t:Build";
         public static string BuildArgument = "{0} /t:Build /fileLogger /fileLoggerParameters:logfile=errorshello1.txt;errorsonly";
+
+        public Projects AllProjects { get; set; }
         // public string SolutionToBuildPath = @"C:\Users\tacke\Documents\visual studio 2015\Projects\helloTest\helloTest.sln";
 
         static void BuildSolution(string solutionPath)
@@ -98,11 +100,19 @@ namespace BuildSolution
         public static void BuildTest(string rootPath)
         {
             List<ProjectFile> projectFiles = Directory.GetFiles(rootPath, "*.csproj", SearchOption.AllDirectories).Select(file => new ProjectFile(new FileInfo(file))).ToList();
+
+            Console.WriteLine("printing projects below");
+            foreach (var proj in projectFiles)
+            {
+                Console.WriteLine(proj.ProjectPath.ToString());
+            }
+
             ProjectFile.PopulateReferenceProjects(projectFiles);
             projectFiles.RunFuncForEach(x => ProjectFile.PopulateNeedsToBeBuilt(x));
 
             var projsToBuild = projectFiles.Where(proj => proj.NeedsToBeBuilt.Value).ToList();
-            XmlDocument xmldoc = new XmlDocument();
+            
+            // XmlDocument xmldoc = new XmlDocument();
             ////xmldoc.Load(rootPath);
 
             ////XmlNamespaceManager ns = new XmlNamespaceManager(xmldoc.NameTable);
@@ -140,21 +150,35 @@ namespace BuildSolution
         ////}
 
         // delete me
-        ////static void Main(string[] args)
-        ////{
-        ////    SolutionFile solution = new SolutionFile();
-        ////    solution.BuildSolution();
 
-        ////    Console.Read();
 
-        ////    string root = @"C:\Users\tacke\Documents\Visual Studio 2015\Projects";
-        ////    BuildTest(root);
-        ////    //// BuildAllSolutions(root);
+        static void AssemTest()
+        {
+            Assembly testAssembly = Assembly.LoadFile(@"C:\Users\tacke\Documents\Visual Studio 2015\Projects\ConsoleApplication1\ConsoleApplication1\bin\Debug\ConsoleApplication1MyD.dll");
+            
+            //System.Reflection.
+           // Console.WriteLine("test assembly");
+        }
 
-        ////    string solutionToBuildPath = @"""C:\Users\tacke\Documents\visual studio 2015\Projects\helloTest\helloTest.sln""";
-        ////    BuildSolution(solutionToBuildPath);
+        static void Main(string[] args)
+        {
+            Projects allProjects = new Projects();
 
-        ////    Console.ReadLine();
-        ////}
+            SolutionFile solution = new SolutionFile();
+            solution.BuildSolution();
+
+           //  Console.Read();
+
+            // string root = @"C:\Users\tacke\Documents\Visual Studio 2015\Projects";
+            // BuildTest(root);
+            //// BuildAllSolutions(root);
+
+            /*
+            string solutionToBuildPath = @"""C:\Users\tacke\Documents\visual studio 2015\Projects\helloTest\helloTest.sln""";
+            BuildSolution(solutionToBuildPath);
+            */
+
+            Console.ReadLine();
+        }
     }
 }
