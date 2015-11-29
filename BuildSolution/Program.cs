@@ -97,6 +97,7 @@ namespace BuildSolution
             }
         }
 
+        /*
         public static void BuildTest(string rootPath)
         {
             List<ProjectFile> projectFiles = Directory.GetFiles(rootPath, "*.csproj", SearchOption.AllDirectories).Select(file => new ProjectFile(new FileInfo(file))).ToList();
@@ -119,6 +120,7 @@ namespace BuildSolution
             ////ns.AddNamespace("msbld", "http://schemas.microsoft.com/developer/msbuild/2003");
             ////XmlNode node = xmldoc.SelectSingleNode("//msbld:TheNodeIWant", ns);
         }
+        */
 
         ////public static void BuildAllSolutions(string rootPath)
         ////{

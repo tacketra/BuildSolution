@@ -9,18 +9,22 @@ namespace BuildSolution
 {
     class Projects
     {
-        public static List<ProjectFile> ProjectList { get; set; }
+        public static ProjectFile[] ProjectList { get; set; }
 
         public Projects()
         {
-            ProjectList = new List<ProjectFile>();
             PopulateAllProjects();
         }
 
         void PopulateAllProjects()
         {
             DirectoryInfo dir = new DirectoryInfo(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile));
-            SearchFolder("*.csproj", dir);
+            List<ProjectFile> tempProjectList = new List<ProjectFile>();
+
+            SearchFolder("*.csproj", dir, tempProjectList);
+
+            Projects.ProjectList = new ProjectFile[tempProjectList.Count];
+            Projects.ProjectList = tempProjectList.ToArray();
 
             ////var files = dir.GetFiles("*.csproj")
             ////    .Where(x => (x.Attributes & FileAttributes.Hidden) == 0)
@@ -30,18 +34,18 @@ namespace BuildSolution
         }
 
         // this would be a simple linq query if it weren't for getFiles() trying to search through hidden folders
-        void SearchFolder(string pattern, DirectoryInfo dir)
+        void SearchFolder(string pattern, DirectoryInfo dir, List<ProjectFile> tempProjectList)
         {
             foreach (var file in dir.GetFiles(pattern).Where(x => (x.Attributes & FileAttributes.Hidden) == 0))
             {
-                ProjectList.Add(new ProjectFile(file));
+                tempProjectList.Add(new ProjectFile(file));
             }
 
             foreach (var subDir in dir.GetDirectories().Where(x => (x.Attributes & FileAttributes.Hidden) == 0))
             {
                 try
                 {
-                    SearchFolder(pattern, subDir);
+                    SearchFolder(pattern, subDir, tempProjectList);
                 }
                 catch
                 {

@@ -28,7 +28,7 @@ namespace BuildSolution
 
         public List<FileInfo> ReferencePaths { get; set; }
 
-        public List<ProjectFile> ReferenceProjects { get; set; }
+        public List<int> ReferenceProjects { get; set; } // index to the project in the array of projects
 
         public bool? NeedsToBeBuilt { get; set; }
 
@@ -55,21 +55,21 @@ namespace BuildSolution
             this.ReferencePaths = refs.Select(item => new FileInfo(Path.Combine(file.DirectoryName, item.EvaluatedValue))).ToList();
         }
 
-        public static void PopulateReferenceProjects(List<ProjectFile> projectFiles)
-        {
-            foreach (var proj in projectFiles)
-            {
-                var refPaths = proj.ReferencePaths.Select(x => FileHelper.NormalizePath(x.FullName)).ToList();
-                proj.ReferenceProjects = projectFiles.Where(x => refPaths.Contains(FileHelper.NormalizePath(x.BuildProjectOutputPath.FullName))).ToList();
-            }
-        }
+        ////public static void PopulateReferenceProjects(List<ProjectFile> projectFiles)
+        ////{
+        ////    foreach (var proj in projectFiles)
+        ////    {
+        ////        var refPaths = proj.ReferencePaths.Select(x => FileHelper.NormalizePath(x.FullName)).ToList();
+        ////        proj.ReferenceProjects = projectFiles.Where(x => refPaths.Contains(FileHelper.NormalizePath(x.BuildProjectOutputPath.FullName))).ToList();
+        ////    }
+        ////}
 
         public static List<ProjectFile> GetCorrectBuildOrder(List<ProjectFile> projectFiles)
         {
             var retProjFiles = new List<ProjectFile>();
             while (projectFiles.Count != 0)
             {
-                ProjectFile proj = projectFiles.Find(x => x.ReferenceProjects.Count == 0 || x.ReferenceProjects.TrueForAll(y => retProjFiles.Contains(y)));
+                ProjectFile proj = projectFiles.Find(x => x.ReferenceProjects.Count == 0 || x.ReferenceProjects.TrueForAll(y => retProjFiles.Contains(Projects.ProjectList[y])));
                 retProjFiles.Add(proj);
                 projectFiles.Remove(proj);
             }
@@ -78,18 +78,20 @@ namespace BuildSolution
             return retProjFiles;
         }
 
-        public static void PopulateNeedsToBeBuilt(List<ProjectFile> projectList)
+        public static void PopulateNeedsToBeBuilt(int[] projectList)
         {
-            projectList.RunFuncForEach(x => ProjectFile.PopulateNeedsToBeBuilt(x));
+            projectList.Where(projIndex => projIndex != -1).RunFuncForEach(x => ProjectFile.PopulateNeedsToBeBuilt(Projects.ProjectList[x]));
         }
 
         public static void PopulateNeedsToBeBuilt(ProjectFile projectFile)
         {
+            
             var curProjBuiltTime = projectFile.BuildProjectOutputPath.LastWriteTime;
             var curProjNeedsToBeBuilt = File.Exists(projectFile.BuildProjectOutputPath.FullName) ? projectFile.ProjectClassPaths.Any(classFile => classFile.LastWriteTime > curProjBuiltTime) : true;
-            projectFile.ReferenceProjects.Where(proj1 => proj1.NeedsToBeBuilt == null).RunFuncForEach(proj => ProjectFile.PopulateNeedsToBeBuilt(proj));//.Where(x => x.NeedsToBeBuilt.Value).Any();
-            var anyRefProjsNeedingBuild = projectFile.ReferenceProjects.Where(x => x.NeedsToBeBuilt.Value).Any();
+            projectFile.ReferenceProjects.Where(proj1 => Projects.ProjectList[proj1].NeedsToBeBuilt == null).RunFuncForEach(proj => ProjectFile.PopulateNeedsToBeBuilt(Projects.ProjectList[proj]));//.Where(x => x.NeedsToBeBuilt.Value).Any();
+            var anyRefProjsNeedingBuild = projectFile.ReferenceProjects.Where(x => Projects.ProjectList[x].NeedsToBeBuilt.Value).Any();
             projectFile.NeedsToBeBuilt = (curProjNeedsToBeBuilt || anyRefProjsNeedingBuild);
+            
         }
     }
 }
