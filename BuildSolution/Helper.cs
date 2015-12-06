@@ -1,6 +1,7 @@
 ﻿using EnvDTE;
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Text;
@@ -8,7 +9,7 @@ using System.Threading.Tasks;
 
 namespace BuildSolution
 {
-    class FileHelper
+    class Helper
     {
         public static bool FileCompare(string path1, string path2)
         {
@@ -35,6 +36,16 @@ namespace BuildSolution
             int lastPeriod = f.LastIndexOf(".");
             filename = f.Substring(lastSlash + 1, lastPeriod - lastSlash - 1);
             return f.Substring(0, lastSlash + 1);
+        }
+
+
+        public static double TimeFunction(Action func)
+        {
+            var watch = Stopwatch.StartNew();
+            func();
+            watch.Stop();
+
+            return watch.ElapsedMilliseconds/1000d;
         }
     }
 }

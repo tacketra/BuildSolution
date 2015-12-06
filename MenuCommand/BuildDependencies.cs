@@ -111,8 +111,8 @@ namespace MenuCommand
                 OLEMSGBUTTON.OLEMSGBUTTON_OK,
                 OLEMSGDEFBUTTON.OLEMSGDEFBUTTON_FIRST);
 
-            SolutionFile solution = new SolutionFile();
-            solution.BuildSolution();
+
+            SolutionBuilder.Run();
         }
     }
 }

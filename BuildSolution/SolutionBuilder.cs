@@ -23,7 +23,7 @@ using System.ComponentModel.Composition;
 
 namespace BuildSolution
 {
-    class Program
+    public class SolutionBuilder
     {
         [Import(typeof(SVsServiceProvider))]
         IServiceProvider ServiceProvider { get; set; }
@@ -34,7 +34,6 @@ namespace BuildSolution
         ////public static string BuildArgument = "'{0}' /t:Build";
         public static string BuildArgument = "{0} /t:Build /fileLogger /fileLoggerParameters:logfile=errorshello1.txt;errorsonly";
 
-        public Projects AllProjects { get; set; }
         // public string SolutionToBuildPath = @"C:\Users\tacke\Documents\visual studio 2015\Projects\helloTest\helloTest.sln";
 
         static void BuildSolution(string solutionPath)
@@ -96,23 +95,22 @@ namespace BuildSolution
             Console.WriteLine("collection");
         }
 
-        static void Main(string[] args)
+        public static void Run()
         {
             Projects allProjects = new Projects();
             Microsoft.Build.Evaluation.ProjectCollection.GlobalProjectCollection.UnloadAllProjects();
             SolutionFile solution = new SolutionFile();
             solution.BuildSolution();
 
-           //  Console.Read();
+            // Console.ReadLine();
+        }
 
-            // string root = @"C:\Users\tacke\Documents\Visual Studio 2015\Projects";
-            // BuildTest(root);
-            //// BuildAllSolutions(root);
-
-            /*
-            string solutionToBuildPath = @"""C:\Users\tacke\Documents\visual studio 2015\Projects\helloTest\helloTest.sln""";
-            BuildSolution(solutionToBuildPath);
-            */
+        static void Main(string[] args)
+        {
+            Projects allProjects = new Projects();
+            Microsoft.Build.Evaluation.ProjectCollection.GlobalProjectCollection.UnloadAllProjects();
+            SolutionFile solution = new SolutionFile();
+            solution.BuildSolution();
 
             Console.ReadLine();
         }

@@ -41,6 +41,11 @@ namespace BuildSolution
 
         public ProjectFile(FileInfo file)
         {
+            if (file.FullName.Contains("itcher"))
+            {
+                string hey = "hello";
+            }
+
             Project project = new Project(file.FullName); // item = metadata , directMetadata count > 0 . metadata[x] where name = HintPath then evaluatedInlcude of that
 
             this.ProjectPath = file;

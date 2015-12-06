@@ -36,7 +36,7 @@ namespace BuildSolution
 
             List<int> projIndexs = new List<int>();
             solutionProjects.RunFuncForEach(projString => {
-                int index = Array.FindIndex(Projects.ProjectList, x => FileHelper.FileCompare(x.ProjectPath.FullName, projString));
+                int index = Array.FindIndex(Projects.ProjectList, x => Helper.FileCompare(x.ProjectPath.FullName, projString));
                 if (index != -1) projIndexs.Add(index);
             });
 
@@ -67,7 +67,7 @@ namespace BuildSolution
                 List<int> addedProjects = new List<int>();
                 foreach (var refPath in proj.ReferencePaths)
                 {
-                    int refIndex = Array.FindIndex(Projects.ProjectList, x => FileHelper.FileCompare(x.BuildProjectOutputPath.FullName, refPath.FullName));
+                    int refIndex = Array.FindIndex(Projects.ProjectList, x => Helper.FileCompare(x.BuildProjectOutputPath.FullName, refPath.FullName));
                     if (refIndex != -1 && !proj.ReferenceProjects.Contains(refIndex))
                     {
                         proj.ReferenceProjects.Add(refIndex); // just added, untested
@@ -94,17 +94,21 @@ namespace BuildSolution
         public void BuildSolution()
         {
             Nonsense();
-            BuildSolution(this.ProjectFiles.Where(index => (bool)Projects.ProjectList[index].NeedsToBeBuilt || !Projects.ProjectList[index].ReadyToBuild).ToList());
 
             Console.WriteLine("solution projects, ref projects tabbed under them.");
             this.ProjectFiles.RunFuncForEach(projIndex => {
                 var proj = Projects.ProjectList[projIndex];
                 Console.WriteLine(proj.ProjectPath + "built?: " + !proj.NeedsToBeBuilt);
-                proj.ReferenceProjects.RunFuncForEach(refIndex => Console.WriteLine("    ref: " + proj.ProjectPath));
+                proj.ReferenceProjects.RunFuncForEach(refIndex => Console.WriteLine("    ref: " + Projects.ProjectList[refIndex].ProjectPath));
                 Console.WriteLine("----------------------------------------------- \n");
             });
 
+            Console.WriteLine("building projects below \n");
             BuildSolution(this.ProjectFiles.Where(index => (bool)Projects.ProjectList[index].NeedsToBeBuilt || !Projects.ProjectList[index].ReadyToBuild).ToList());
+
+            Console.WriteLine("projects all built! \n");
+
+            Nonsense();
         }
 
         // returns true if any project passed in built, false otherwise
@@ -120,6 +124,7 @@ namespace BuildSolution
                     new Microsoft.Build.Evaluation.Project(proj.ProjectPath.FullName).Build(); // I think default build should be good enough?
                     proj.NeedsToBeBuilt = false;
                     anyProjectsBuild = true;
+                    Console.WriteLine("building: " +  proj.ProjectPath);
                 }
 
                 // if ((bool)!proj.NeedsToBeBuilt && proj.ReadyToBuild) { continue; }
