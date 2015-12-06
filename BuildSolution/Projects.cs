@@ -13,6 +13,7 @@ namespace BuildSolution
 
         public Projects()
         {
+            var projCollection = Microsoft.Build.Evaluation.ProjectCollection.GlobalProjectCollection;
             PopulateAllProjects();
         }
 
@@ -20,7 +21,6 @@ namespace BuildSolution
         {
             DirectoryInfo dir = new DirectoryInfo(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile));
             List<ProjectFile> tempProjectList = new List<ProjectFile>();
-
             SearchFolder("*.csproj", dir, tempProjectList);
 
             Projects.ProjectList = new ProjectFile[tempProjectList.Count];
@@ -29,8 +29,6 @@ namespace BuildSolution
             ////var files = dir.GetFiles("*.csproj")
             ////    .Where(x => (x.Attributes & FileAttributes.Hidden) == 0)
             ////    .RunFuncForEach(proj => this.ProjectList.Add(new ProjectFile(proj)));
-
-            var test = "hello";
         }
 
         // this would be a simple linq query if it weren't for getFiles() trying to search through hidden folders

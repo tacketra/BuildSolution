@@ -7,13 +7,14 @@ using System.Text;
 using System.Threading.Tasks;
 using ConsoleApplication1;
 using DogLibrary;
+using EnvDTE80;
 
 namespace BuildSolution
 {
     class SolutionFile
     {
         // List<ProjectFile> ProjectFiles { get; set; }
-        int[] ProjectFiles; // array of index's into the array of project files from the projects class (static)
+        List<int> ProjectFiles; // array of index's into the array of project files from the projects class (static)
 
         Solution solutionInfo { get; set; }
 
@@ -29,13 +30,7 @@ namespace BuildSolution
         {
             EnvDTE80.DTE2 dte = (EnvDTE80.DTE2)System.Runtime.InteropServices.Marshal.GetActiveObject("VisualStudio.DTE");
             this.solutionInfo = dte.DTE.Solution;
-
-            this.ProjectFiles = new int[Projects.ProjectList.Length];
-            for (int i = 0; i < this.ProjectFiles.Length; i++)
-            {
-                this.ProjectFiles[i] = -1;
-            }
-
+            this.ProjectFiles = new List<int>();
             
             List<string> solutionProjects = dte.DTE.Solution.Projects.Cast<EnvDTE.Project>().Select(x => x.FullName).ToList();
 
@@ -45,15 +40,14 @@ namespace BuildSolution
                 if (index != -1) projIndexs.Add(index);
             });
 
-
-
             // solutionProjects.Select(projString => Array.FindIndex(Projects.ProjectList, x => FileHelper.FileCompare(x.ProjectPath.FullName, projString)));
             this.PopulateSolutionProjects(projIndexs);
+            // ProjectFile.PopulateReadyToBuild(this.ProjectFiles);
         }
 
-        public void PopulateSolutionProjects(List<int> projList)
+        private void PopulateSolutionProjects(List<int> projList)
         {
-            projList.RunFuncForEach(projIndex => this.ProjectFiles[projIndex] = projIndex);
+            projList.RunFuncForEach(projIndex => this.ProjectFiles.Add(projIndex));
 
             // foreach (int projIndex in this.ProjectFiles.Where(x => x != -1))
             foreach (int projIndex in projList)
@@ -82,73 +76,84 @@ namespace BuildSolution
                    
                 }
 
+                ProjectFile.PopulateNeedsToBeBuilt(proj); // just added, this should be accurate
+
                 if (addedProjects.Count != 0)
                 {
                     this.PopulateSolutionProjects(addedProjects);
                 }
+                else
+                {
+                    proj.ReadyToBuild = true;
+                }
 
             }
-
-            var dog = "doggy";
         }
-
-        ////public void PopulateSolutionProjects(List<ProjectFile> projList, int index)
-        ////{
-            
-        ////    foreach (string proj in projList)
-        ////    {
-        ////        var projectFromList = Projects.ProjectList.Where(x => FileHelper.FileCompare(x.ProjectPath.FullName, proj)).Single();
-        ////        if (!this.ProjectFiles.Contains(projectFromList))
-        ////        {
-        ////            this.ProjectFiles.Add(projectFromList);
-        ////        }
-
-        ////        // this.ProjectFiles.Add(new ProjectFile(new FileInfo(proj.FullName)));
-        ////    }
-
-        ////    var refProjects = new List<ProjectFile>();
-        ////    foreach (var proj in this.ProjectFiles.Where(x => x.ReferenceProjects == null))
-        ////    {
-        ////        // not postive this is correct, so far the way to determine if projects references have been checked
-        ////        if (proj.ReferenceProjects == null)
-        ////        {
-        ////            proj.ReferenceProjects = new List<ProjectFile>();
-        ////        }
-
-        ////        foreach (var refPath in proj.ReferencePaths)
-        ////        {
-        ////            var projectsFromRefs = Projects.ProjectList.Where(x => FileHelper.FileCompare(x.BuildProjectOutputPath.FullName, refPath.FullName)).ToList();
-        ////            if (projectsFromRefs.Any())
-        ////            {
-        ////                var firstProj = projectsFromRefs.First();
-        ////                if (!this.ProjectFiles.Contains(firstProj))
-        ////                {
-        ////                    proj.ReferenceProjects.Add(firstProj); // just added, untested
-        ////                    refProjects.Add(firstProj);
-        ////                }
-        ////            }
-        ////        }
-
-        ////    }
-
-        ////    this.PopulateSolutionProjects(refProjects);
-
-        ////    var dog = "doggy";
-        ////}
 
 
         public void BuildSolution()
         {
             Nonsense();
-            SolutionFile.BuildSolution(this);
+            BuildSolution(this.ProjectFiles.Where(index => (bool)Projects.ProjectList[index].NeedsToBeBuilt || !Projects.ProjectList[index].ReadyToBuild).ToList());
+
+            Console.WriteLine("solution projects, ref projects tabbed under them.");
+            this.ProjectFiles.RunFuncForEach(projIndex => {
+                var proj = Projects.ProjectList[projIndex];
+                Console.WriteLine(proj.ProjectPath + "built?: " + !proj.NeedsToBeBuilt);
+                proj.ReferenceProjects.RunFuncForEach(refIndex => Console.WriteLine("    ref: " + proj.ProjectPath));
+                Console.WriteLine("----------------------------------------------- \n");
+            });
+
+            BuildSolution(this.ProjectFiles.Where(index => (bool)Projects.ProjectList[index].NeedsToBeBuilt || !Projects.ProjectList[index].ReadyToBuild).ToList());
         }
 
-        public static void BuildSolution(SolutionFile solution)
+        // returns true if any project passed in built, false otherwise
+        private bool BuildSolution(List<int> projects)
         {
+            bool anyProjectsBuild = false; // if a single projects from the list of projects built return true
+            foreach (int projIndex in projects)
+            {
+                var proj = Projects.ProjectList[projIndex];
+                if (this.BuildSolution(proj.ReferenceProjects) || (bool)proj.NeedsToBeBuilt)
+                {
+                    var dog = Microsoft.Build.Evaluation.ProjectCollection.GlobalProjectCollection;
+                    new Microsoft.Build.Evaluation.Project(proj.ProjectPath.FullName).Build(); // I think default build should be good enough?
+                    proj.NeedsToBeBuilt = false;
+                    anyProjectsBuild = true;
+                }
+
+                // if ((bool)!proj.NeedsToBeBuilt && proj.ReadyToBuild) { continue; }
+
+
+                //while (!proj.ReadyToBuild)
+                //{
+                //    List<int> projectsThatNeedToBuild = new List<int>();
+                //    foreach (int refIndex in proj.ReferenceProjects)
+                //    {
+                //        var refProj = Projects.ProjectList[refIndex];
+
+
+                //    }
+                //}
+            }
+
+            return anyProjectsBuild;
+        }
+
+        private void BuildSolutionOld(SolutionFile solution)
+        {
+            Console.WriteLine("solution projects, ref projects tabbed under them.");
+            solution.ProjectFiles.RunFuncForEach(projIndex => {
+                var proj = Projects.ProjectList[projIndex];
+                Console.WriteLine(proj.ProjectPath + "built?: " + !proj.NeedsToBeBuilt);
+                proj.ReferenceProjects.RunFuncForEach(refIndex => Console.WriteLine("    ref: " + proj.ProjectPath));
+                Console.WriteLine("----------------------------------------------- \n");
+            });
+
+
             // ProjectFile.PopulateReferenceProjects(solution.ProjectFiles); // I think this is now handled in instantion of this class
             ProjectFile.PopulateNeedsToBeBuilt(solution.ProjectFiles);
 
-            // remove below
             Console.WriteLine("solution projects ");
 
             solution.ProjectFiles.RunFuncForEach(x => Console.WriteLine(Projects.ProjectList[x].ProjectPath));
@@ -159,9 +164,8 @@ namespace BuildSolution
 
             Console.WriteLine("\n Correct build order");
             solution.ProjectFiles.RunFuncForEach(x => Console.WriteLine(Projects.ProjectList[x].ProjectPath));
-            // remove above
 
-            ProjectFile.GetCorrectBuildOrder(solution.ProjectFiles.Select(x => Projects.ProjectList[x]).ToList() );
+            ProjectFile.GetCorrectBuildOrder(solution.ProjectFiles.Select(x => Projects.ProjectList[x]).ToList());
 
         }
 

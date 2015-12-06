@@ -73,22 +73,6 @@ namespace BuildSolution
                     Console.WriteLine(process.StandardError.ReadToEnd());
                 }
 
-                ////var newProcess = new Process();
-                ////newProcess.StartInfo = new ProcessStartInfo(MsBuildPath);
-                ////string arg = string.Format(BuildArgument, solutionPath);
-                ////newProcess.StartInfo.Arguments = arg;
-                //// newProcess.StartInfo = startInfo;
-
-                ////var output = newProcess.StandardOutput;
-                ////Console.WriteLine("starting to read from process");
-                ////while (!output.EndOfStream)
-                ////{
-                ////    Console.WriteLine(output.ReadLine());
-                ////}
-
-                ////var genesightShellProcess = new GenesightShellProcess(newProcess);
-                ////GenesightShellProcess.currentShell = genesightShellProcess;
-                ////return genesightShellProcess;
             }
             catch (Exception e)
             {
@@ -96,62 +80,6 @@ namespace BuildSolution
                 return;
             }
         }
-
-        /*
-        public static void BuildTest(string rootPath)
-        {
-            List<ProjectFile> projectFiles = Directory.GetFiles(rootPath, "*.csproj", SearchOption.AllDirectories).Select(file => new ProjectFile(new FileInfo(file))).ToList();
-
-            Console.WriteLine("printing projects below");
-            foreach (var proj in projectFiles)
-            {
-                Console.WriteLine(proj.ProjectPath.ToString());
-            }
-
-            ProjectFile.PopulateReferenceProjects(projectFiles);
-            projectFiles.RunFuncForEach(x => ProjectFile.PopulateNeedsToBeBuilt(x));
-
-            var projsToBuild = projectFiles.Where(proj => proj.NeedsToBeBuilt.Value).ToList();
-            
-            // XmlDocument xmldoc = new XmlDocument();
-            ////xmldoc.Load(rootPath);
-
-            ////XmlNamespaceManager ns = new XmlNamespaceManager(xmldoc.NameTable);
-            ////ns.AddNamespace("msbld", "http://schemas.microsoft.com/developer/msbuild/2003");
-            ////XmlNode node = xmldoc.SelectSingleNode("//msbld:TheNodeIWant", ns);
-        }
-        */
-
-        ////public static void BuildAllSolutions(string rootPath)
-        ////{
-        ////    ////string[] files = Directory.GetFiles(rootPath, "*.sln", SearchOption.AllDirectories);
-        ////    string[] files = Directory.GetFiles(rootPath, "*.csproj", SearchOption.AllDirectories);
-        ////    foreach (var f in files)
-        ////    {
-        ////        string compilePath  = ProjectFile.GetCSProjOutputPath(f);
-
-        ////        string pathWithoutProjFile = string.Empty, projFileName = string.Empty;
-        ////        pathWithoutProjFile = FileHelper.removeFileNameFromPath(f, out projFileName);
-        ////        string binPath = pathWithoutProjFile + compilePath;
-
-        ////        string[] binFiles = Directory.GetFiles(binPath);
-        ////        string buildFile = binFiles.Single(x => x.EndsWith(projFileName + ".dll") || x.EndsWith(projFileName + ".exe"));
-
-        ////        string[] classFiles = Directory.GetFiles(pathWithoutProjFile, "*.cs", SearchOption.AllDirectories);
-        ////        classFiles = classFiles.Where(x => !x.Contains("TemporaryGeneratedFile")).ToArray();
-        ////        foreach (string fil in classFiles)
-        ////        {
-        ////            Console.WriteLine(fil);
-        ////        }
-
-
-        ////        Console.WriteLine(buildFile);
-        ////        ////XmlNode node = doc.DocumentElement.SelectSingleNode("Project/PropertyGroup");
-        ////        ////XmlNode node = doc.DocumentElement.SelectSingleNode("Project/PropertyGroup/OutputPath");
-        ////    }
-        ////}
-
-        // delete me
 
 
         static void AssemTest()
@@ -162,10 +90,16 @@ namespace BuildSolution
            // Console.WriteLine("test assembly");
         }
 
+        static void ProjCollect()
+        {
+            var projCollection = Microsoft.Build.Evaluation.ProjectCollection.GlobalProjectCollection;
+            Console.WriteLine("collection");
+        }
+
         static void Main(string[] args)
         {
             Projects allProjects = new Projects();
-
+            Microsoft.Build.Evaluation.ProjectCollection.GlobalProjectCollection.UnloadAllProjects();
             SolutionFile solution = new SolutionFile();
             solution.BuildSolution();
 

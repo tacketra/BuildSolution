@@ -32,6 +32,8 @@ namespace BuildSolution
 
         public bool? NeedsToBeBuilt { get; set; }
 
+        public bool ReadyToBuild { get; set; } = false; // default false since we initially have no idea if proj is ready to build without checking refs
+
         public ProjectFile()
         {
 
@@ -40,7 +42,8 @@ namespace BuildSolution
         public ProjectFile(FileInfo file)
         {
             Project project = new Project(file.FullName); // item = metadata , directMetadata count > 0 . metadata[x] where name = HintPath then evaluatedInlcude of that
-            this.ProjectPath = new FileInfo(project.FullPath);
+
+            this.ProjectPath = file;
 
             ////this.BuildProjectOutputPath = new FileInfo(project.Items.Single(item => item.ItemType.Equals(ProjectItemTypes.BuildOutputPath)).EvaluatedInclude); // EvaluatedInclude
             var dirName = file.DirectoryName;
@@ -78,12 +81,33 @@ namespace BuildSolution
             return retProjFiles;
         }
 
-        public static void PopulateNeedsToBeBuilt(int[] projectList)
+        public static void PopulateNeedsToBeBuilt(List<int> projectList)
         {
-            projectList.Where(projIndex => projIndex != -1).RunFuncForEach(x => ProjectFile.PopulateNeedsToBeBuilt(Projects.ProjectList[x]));
+            projectList.RunFuncForEach(x => ProjectFile.PopulateNeedsToBeBuilt(Projects.ProjectList[x]));
         }
 
         public static void PopulateNeedsToBeBuilt(ProjectFile projectFile)
+        {
+            var curProjBuiltTime = projectFile.BuildProjectOutputPath.LastWriteTime;
+            projectFile.NeedsToBeBuilt = File.Exists(projectFile.BuildProjectOutputPath.FullName) ? projectFile.ProjectClassPaths.Any(classFile => classFile.LastWriteTime > curProjBuiltTime) : true;
+
+            //if (projectFile.ReferenceProjects.Count == 0)
+            //{
+            //    projectFile.ReadyToBuild = true; // no ref's to check
+            //}
+        }
+
+        //public static void PopulateReadyToBuild(List<int> projectList)
+        //{
+        //    foreach (var projIndex in projectList)
+        //    {
+        //        var proj = Projects.ProjectList[projIndex];
+
+        //    }
+
+        //}
+
+        public static void PopulateNeedsToBeBuiltTwo(ProjectFile projectFile)
         {
             
             var curProjBuiltTime = projectFile.BuildProjectOutputPath.LastWriteTime;
