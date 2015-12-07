@@ -34,6 +34,8 @@ namespace BuildSolution
 
         public bool ReadyToBuild { get; set; } = false; // default false since we initially have no idea if proj is ready to build without checking refs
 
+        public bool? HasBuilt { get; set; }
+
         public ProjectFile()
         {
 

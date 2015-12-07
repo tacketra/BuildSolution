@@ -47,5 +47,6 @@ namespace BuildSolution
 
             return watch.ElapsedMilliseconds/1000d;
         }
+
     }
 }
