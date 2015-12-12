@@ -59,7 +59,7 @@ namespace BuildSolution
             var watch = System.Diagnostics.Stopwatch.StartNew();
             for (int i = 0; i < processorCount; i++)
             {
-                int index = i;
+                int index = i; //  If you don't set i to a local variable, it may be a differnt value when the thread starts
                 var myTask = new Task(() => { SearchFolderUsingInfos(".csproj", projArray[index], dirInfos[index].ToArray()); });
                 myTask.Start();
                 taskArray[index] = myTask;

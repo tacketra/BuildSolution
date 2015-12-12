@@ -28,7 +28,7 @@ namespace BuildSolution
         [Import(typeof(SVsServiceProvider))]
         IServiceProvider ServiceProvider { get; set; }
 
-        public static string MsBuildPath = @"C:\Windows\Microsoft.NET\Framework\v4.0.30319\MSBuild.exe";
+        public static string MsBuildPath = "C:\\Windows\\Microsoft.NET\\Framework\\v4.0.30319\\MSBuild.exe";
         public static string CscBuildPath = @"C:\Windows\Microsoft.NET\Framework\v4.0.30319\csc.exe";
         public static string BuildArgument = "{0} /t:Build /fileLogger /fileLoggerParameters:logfile=errorshello1.txt;errorsonly";
 

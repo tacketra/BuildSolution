@@ -36,6 +36,8 @@ namespace BuildSolution
 
         public bool? HasBuilt { get; set; }
 
+        public bool IsLocked { get; set; } = false;// temporary, not sure if worht having yet
+
         public ProjectFile()
         {
 
