@@ -39,8 +39,8 @@ namespace BuildSolution
         public void TestDllRefFunctions()
         {
             Console.WriteLine("Nonsense function called");
-            Console.WriteLine(SolRunnerPrinter.SolRunnerCallConsoleApp1());
-            Console.WriteLine(TheDog.DogNumber());
+            //Console.WriteLine(SolRunnerPrinter.SolRunnerCallConsoleApp1());
+            //Console.WriteLine(TheDog.DogNumber());
 
         }
 
@@ -206,6 +206,14 @@ namespace BuildSolution
                 counter += list.Count;
             }
 
+            //Console.WriteLine("buildtime of bulb: " + Helper.TimeFunction(() =>
+            //    new Microsoft.Build.Evaluation.Project(bulbProj.ProjectPath.FullName).Build()
+            //    ));
+
+            //Console.WriteLine("buildtime of bulb: " + Helper.TimeFunction(() =>
+            //    ExecuteCommand(string.Format("{0} {1}", SolutionBuilder.MsBuildPath, "\"" + bulbProj.ProjectPath.FullName + "\""), bulbIndex)
+            //));
+
             // Microsoft.Build.Evaluation.ProjectCollection.GlobalProjectCollection.UnloadAllProjects();
             int processorCount = Environment.ProcessorCount;
             Console.WriteLine("buildSolution Parallel time: " + Helper.TimeFunction(() =>
@@ -244,7 +252,7 @@ namespace BuildSolution
         // returns true if any project passed in built, false otherwise
         private void BuildSolutionParallel(int projCount, int threads)
         {
-            //threads = 1;//
+            threads = 1;//
             Task[] taskArray = new Task[threads];
             for (int i = 0; i < threads; i++)
             {
@@ -400,24 +408,43 @@ namespace BuildSolution
 
                         //}));
 
+                        //Console.WriteLine("building: " + proj.ProjectPath + ": " + Helper.TimeFunction(() =>
+                        //{
+                        //    //Console.WriteLine("building: " + proj.ProjectPath);
+
+                        //    try
+                        //    {
+                        //        new Microsoft.Build.Evaluation.Project(proj.ProjectPath.FullName).Build(); // I think default build should be good enough?
+
+                        //        proj.NeedsToBeBuilt = false;
+                        //        proj.HasBuilt = true;
+                        //        COUNTER++;
+                        //    }
+                        //    catch
+                        //    {
+                        //        proj.NeedsToBeBuilt = null;
+                        //        ExecuteCommand(string.Format("{0} {1}", SolutionBuilder.MsBuildPath, "\"" + proj.ProjectPath.FullName + "\""), projIndex);
+                        //    }
+                        //}));
+
                         Console.WriteLine(proj.ProjectPath + ": " + Helper.TimeFunction(() =>
                         {
-                            if (Monitor.TryEnter(msLock))
-                            {
-                                Console.WriteLine("building: " + proj.ProjectPath);
-                                new Microsoft.Build.Evaluation.Project(proj.ProjectPath.FullName).Build(); // I think default build should be good enough?
+                            //if (Monitor.TryEnter(msLock))
+                            //{
+                            //    Console.WriteLine("starting to MS_build " + proj.ProjectPath.Name);
+                            //    new Microsoft.Build.Evaluation.Project(proj.ProjectPath.FullName).Build(); // I think default build should be good enough?
 
-                                proj.NeedsToBeBuilt = false;
-                                proj.HasBuilt = true;
-                                COUNTER++;
+                            //    proj.NeedsToBeBuilt = false;
+                            //    proj.HasBuilt = true;
+                            //    COUNTER++;
 
-                            }
-                            else
-                            {
+                            //}
+                            //else
+                            //{
                                 proj.NeedsToBeBuilt = null;
-                                Console.WriteLine("building: " + proj.ProjectPath);
-                                ExecuteCommand(string.Format("{0} {1}", SolutionBuilder.MsBuildPath, "\"" + proj.ProjectPath.FullName + "\""), projIndex);
-                            }
+                                ExecuteCommand(proj);
+                                //ExecuteCommand(string.Format("{0} {1}", SolutionBuilder.CurPath, "\"" + proj.ProjectPath.FullName + "\""), projIndex);
+                            //}
                         }));
 
                         break;
@@ -449,26 +476,46 @@ namespace BuildSolution
                             //        proj.NeedsToBeBuilt = null;
                             //        Console.WriteLine("building: " + proj.ProjectPath);
                             //        ExecuteCommand(string.Format("{0} {1}", SolutionBuilder.MsBuildPath, "\"" + proj.ProjectPath.FullName + "\""), projIndex);
-                                
+
+                            //}));
+
+                            //Console.WriteLine("building: " + proj.ProjectPath + ": " + Helper.TimeFunction(() =>
+                            //{
+                            //    //Console.WriteLine("building: " + proj.ProjectPath);
+
+                            //    try
+                            //    {
+                            //        new Microsoft.Build.Evaluation.Project(proj.ProjectPath.FullName).Build(); // I think default build should be good enough?
+
+                            //        proj.NeedsToBeBuilt = false;
+                            //        proj.HasBuilt = true;
+                            //        COUNTER++;
+                            //    }
+                            //    catch
+                            //    {
+                            //        proj.NeedsToBeBuilt = null;
+                            //        ExecuteCommand(string.Format("{0} {1}", SolutionBuilder.MsBuildPath, "\"" + proj.ProjectPath.FullName + "\""), projIndex);
+                            //    }
                             //}));
 
                             Console.WriteLine(proj.ProjectPath + ": " + Helper.TimeFunction(() =>
                             {
-                                if (Monitor.TryEnter(msLock))
-                                {
-                                    Console.WriteLine("building: " + proj.ProjectPath);
-                                    new Microsoft.Build.Evaluation.Project(proj.ProjectPath.FullName).Build(); // I think default build should be good enough?
-                                    proj.NeedsToBeBuilt = false;
-                                    proj.HasBuilt = true;
-                                    COUNTER++;
+                                //if (Monitor.TryEnter(msLock))
+                                //{
+                                //    Console.WriteLine("starting to MS_build " + proj.ProjectPath.Name);
 
-                                }
-                                else
-                                {
+                                //    new Microsoft.Build.Evaluation.Project(proj.ProjectPath.FullName).Build(); // I think default build should be good enough?
+                                //    proj.NeedsToBeBuilt = false;
+                                //    proj.HasBuilt = true;
+                                //    COUNTER++;
+
+                                //}
+                                //else
+                                //{
                                     proj.NeedsToBeBuilt = null;
-                                    Console.WriteLine("building: " + proj.ProjectPath);
-                                    ExecuteCommand(string.Format("{0} {1}", SolutionBuilder.MsBuildPath, "\"" + proj.ProjectPath.FullName + "\""), projIndex);
-                                }
+                                    ExecuteCommand(proj);
+                                    //ExecuteCommand(string.Format("{0} {1}", SolutionBuilder.CurPath, "\"" + proj.ProjectPath.FullName + "\""), projIndex);
+                                //}
                             }
                             ));
 
@@ -646,6 +693,95 @@ namespace BuildSolution
             
         }
 
+        public void ExecuteCommand(ProjectFile proj)
+        {
+            Console.WriteLine("starting to build " + proj.ProjectPath.Name);
+
+            System.Diagnostics.Process process = new System.Diagnostics.Process();
+            System.Diagnostics.ProcessStartInfo startInfo = new System.Diagnostics.ProcessStartInfo();
+            //startInfo.WindowStyle = System.Diagnostics.ProcessWindowStyle.Hidden;
+            startInfo.WorkingDirectory = proj.ProjectPath.Directory.FullName;
+            startInfo.FileName = "cmd.exe";
+            //startInfo.FileName = "\"C:\\Program Files (x86)\\Microsoft Visual Studio 14.0\\Common7\\Tools\\VsDevCmd.bat\"";
+            startInfo.Arguments = "/c  \"\"C:\\Program Files (x86)\\Microsoft Visual Studio 14.0\\Common7\\Tools\\VsDevCmd.bat\"" + " && csc " + " " + proj.ReferenceCompileArg + " " + proj.TargetCompileArg + " /out:\"" + proj.BuildProjectOutputPath + "\" *.cs\"";//string.Join(" ", proj.ProjectClassPaths.Select(x => "\"" + x.FullName + "\""));//" *.cs";//+ " /maxcpucount:4 /p:BuildInParallel=true";
+                                                                                                                                                                                                                                                                   //startInfo.FileName = "\"C:\\Program Files (x86)\\Microsoft Visual Studio 14.0\\Common7\\Tools\\VsDevCmd.bat\"" + " && csc " + " " + proj.ReferenceCompileArg + " " + proj.TargetCompileArg + " /out:\"" + proj.BuildProjectOutputPath + "\" *.cs";//string.Join(" ", proj.ProjectClassPaths.Select(x => "\"" + x.FullName + "\""));//" *.cs";//+ " /maxcpucount:4 /p:BuildInParallel=true";
+
+            Console.WriteLine(startInfo.Arguments);
+            process.StartInfo = startInfo;
+            //process.EnableRaisingEvents = true;
+            //process.Exited += (sender, e) => BuildProcessExited(sender, e, projIndex);
+            
+
+
+
+
+
+             process.StartInfo.UseShellExecute = false;
+             process.StartInfo.RedirectStandardOutput = true;
+
+             
+
+
+
+
+
+
+            process.Start();
+                         string output = process.StandardOutput.ReadToEnd();
+            process.WaitForExit();
+
+            Console.WriteLine(output);
+            //var proj = Projects.ProjectList[projIndex];
+
+            proj.NeedsToBeBuilt = false;
+            proj.HasBuilt = true;
+            COUNTER++;
+
+        }
+
+
+        public void ExecuteCommandOld(ProjectFile proj)
+        {
+            Console.WriteLine("starting to build " + proj.ProjectPath.Name);
+
+            System.Diagnostics.Process process = new System.Diagnostics.Process();
+            System.Diagnostics.ProcessStartInfo startInfo = new System.Diagnostics.ProcessStartInfo();
+            //startInfo.WindowStyle = System.Diagnostics.ProcessWindowStyle.Hidden;
+            startInfo.WorkingDirectory = proj.ProjectPath.Directory.FullName;
+            startInfo.FileName = "CMD.exe";
+            startInfo.Arguments = "/c " + SolutionBuilder.CurPath + " " + proj.ReferenceCompileArg + " " + proj.TargetCompileArg + " " + "/out:" + proj.BuildProjectOutputPath + " " + "*.cs";//string.Join(" ", proj.ProjectClassPaths.Select(x => "\"" + x.FullName + "\""));//" *.cs";//+ " /maxcpucount:4 /p:BuildInParallel=true";
+            process.StartInfo = startInfo;
+            //process.EnableRaisingEvents = true;
+            //process.Exited += (sender, e) => BuildProcessExited(sender, e, projIndex);
+            
+
+
+
+
+
+             process.StartInfo.UseShellExecute = false;
+             process.StartInfo.RedirectStandardOutput = true;
+
+             
+
+
+
+
+
+
+            process.Start();
+                         string output = process.StandardOutput.ReadToEnd();
+            process.WaitForExit();
+
+            Console.WriteLine(output);
+            //var proj = Projects.ProjectList[projIndex];
+
+            proj.NeedsToBeBuilt = false;
+            proj.HasBuilt = true;
+            COUNTER++;
+
+        }
+
         public void ExecuteCommandTemp(string command)
         {
             System.Diagnostics.Process process = new System.Diagnostics.Process();
@@ -660,22 +796,49 @@ namespace BuildSolution
 
         public void ExecuteCommand(string command, int projIndex)
         {
+            var proj = Projects.ProjectList[projIndex];
+            Console.WriteLine("starting to build " + proj.ProjectPath.Name);
+
             System.Diagnostics.Process process = new System.Diagnostics.Process();
             System.Diagnostics.ProcessStartInfo startInfo = new System.Diagnostics.ProcessStartInfo();
             startInfo.WindowStyle = System.Diagnostics.ProcessWindowStyle.Hidden;
             startInfo.FileName = "CMD.exe";
-            startInfo.Arguments = "/c " + command + " /maxcpucount:4 /p:BuildInParallel=true";
+            startInfo.Arguments = "/c " + command ;//+ " /maxcpucount:4 /p:BuildInParallel=true";
             process.StartInfo = startInfo;
             //process.EnableRaisingEvents = true;
             //process.Exited += (sender, e) => BuildProcessExited(sender, e, projIndex);
             process.Start();
             process.WaitForExit();
 
-            var proj = Projects.ProjectList[projIndex];
+            //var proj = Projects.ProjectList[projIndex];
 
             proj.NeedsToBeBuilt = false;
             proj.HasBuilt = true;
             COUNTER++;
+
+        }
+
+        public void ExecuteCommandDelay(string command, int projIndex)
+        {
+            var proj = Projects.ProjectList[projIndex];
+            Console.WriteLine("starting to build " + proj.ProjectPath.Name);
+
+            System.Diagnostics.Process process = new System.Diagnostics.Process();
+            System.Diagnostics.ProcessStartInfo startInfo = new System.Diagnostics.ProcessStartInfo();
+            startInfo.WindowStyle = System.Diagnostics.ProcessWindowStyle.Hidden;
+            startInfo.FileName = "CMD.exe";
+            startInfo.Arguments = "/c " + command; //+ " /maxcpucount:4 /p:BuildInParallel=true";
+            process.StartInfo = startInfo;
+            process.EnableRaisingEvents = true;
+            process.Exited += (sender, e) => BuildProcessExited(sender, e, projIndex);
+            process.Start();
+            //process.WaitForExit();
+
+            //var proj = Projects.ProjectList[projIndex];
+
+            //proj.NeedsToBeBuilt = false;
+            //proj.HasBuilt = true;
+            //COUNTER++;
 
         }
 
