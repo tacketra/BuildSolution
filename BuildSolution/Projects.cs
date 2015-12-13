@@ -49,10 +49,16 @@ namespace BuildSolution
                 dirInfos[j].Add(dirFiInfos[i]);
             }
             
+            
+            List<ProjectFile> tempProjectList2 = new List<ProjectFile>();
+
+            Console.WriteLine("searchFolder Normal time: " + Helper.TimeFunction(() => SearchFolder("*.csproj", dir, tempProjectList2)));
+
+
 
             List<ProjectFile> tempProjectList = new List<ProjectFile>();
 
-            Microsoft.Build.Evaluation.ProjectCollection.GlobalProjectCollection.UnloadAllProjects();
+            Microsoft.Build.Evaluation.ProjectCollection.GlobalProjectCollection.UnloadAllProjects(); // ptryy sure this isn't needed, done sooner i think
 
             Task[] taskArray = new Task[processorCount];
 
@@ -72,10 +78,6 @@ namespace BuildSolution
             Projects.ProjectList = tempProjectList.ToArray();
 
             Console.WriteLine("searchFolder Parallel time: " + watch.ElapsedMilliseconds / 1000d);
-
-            List<ProjectFile> tempProjectList2 = new List<ProjectFile>();
-
-            Console.WriteLine("searchFolder Normal time: " + Helper.TimeFunction(() => SearchFolder("*.csproj", dir, tempProjectList2)));
         }
 
         /// <summary>

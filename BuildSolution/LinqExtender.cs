@@ -23,6 +23,13 @@ namespace BuildSolution
             return @this;
         }
 
+        /// <summary>
+        /// remove and element from the list, and return it
+        /// </summary>
+        /// <typeparam name="T"></typeparam>
+        /// <param name="list"></param>
+        /// <param name="index"></param>
+        /// <returns></returns>
         public static T RemoveAndGet<T>(this IList<T> list, int index)
         {
             lock (list)
