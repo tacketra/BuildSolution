@@ -22,6 +22,7 @@ namespace BuildSolution
             public static readonly string PropOutputPath = "OutputPath";
             public static readonly string PropOutputFileName = "TargetFileName";
             public static readonly string ReferenceProject = "ProjectReference";
+            public static readonly string PropAssemblyName = "AssemblyName";
         }
 
         public FileInfo ProjectPath { get; set; }
@@ -33,6 +34,8 @@ namespace BuildSolution
         public List<FileInfo> ReferencePaths { get; set; } = new List<FileInfo>();
 
         public string ReferenceCompileArg { get; set; }
+
+        public string ResourceCompileArg { get; set; }
 
         public string TargetCompileArg { get; set; }
 
@@ -55,6 +58,7 @@ namespace BuildSolution
             var temp = dirName + @"\" + outName + fileName;
             this.BuildProjectOutputPath = new FileInfo(file.DirectoryName + @"\" + project.Properties.Single(prop1 => prop1.Name.Equals(ProjectItemTypes.PropOutputPath)).EvaluatedValue + project.Properties.Single(prop2 => prop2.Name.Equals(ProjectItemTypes.PropOutputFileName)).EvaluatedValue);
             this.TargetCompileArg =  this.BuildProjectOutputPath.Extension.Equals(".dll") ? "/target:library" : "/target:exe";
+            this.ResourceCompileArg = "obj\\Debug\\" + project.Properties.Single(prop => prop.Name.Equals(ProjectItemTypes.PropAssemblyName)) .EvaluatedValue + ".Properties.Resources.resources";
 
             this.ProjectClassPaths = project.Items.Where(item => item.ItemType.Equals(ProjectItemTypes.CompilePath)).Select(item => new FileInfo(file.DirectoryName + "\\" + item.EvaluatedInclude)).ToList();
             var projDlls = project.Items.Where(item => item.ItemType.Equals(ProjectItemTypes.Reference)).ToList();

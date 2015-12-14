@@ -196,17 +196,30 @@ namespace BuildSolution
         /// <param name="threads"></param>
         private void BuildSolution(int projCount, int threads)
         {
-            Task[] taskArray = new Task[threads];
-            for (int i = 0; i < threads; i++)
+            var threadList = new List<System.Threading.Thread>();
+            for (int i = 0; i < threads -1; i++)
             {
-                int index = i;
-                var myTask = new Task(() => { this.BuildSolution(projCount); });
-
-                taskArray[index] = myTask;
-                myTask.Start();
+                System.Threading.Thread t = new System.Threading.Thread(new System.Threading.ThreadStart(() => BuildSolution(projCount)));
+                t.Start();
+                threadList.Add(t);
             }
 
-            Task.WaitAll(taskArray);
+            foreach (var t in threadList)
+            {
+                t.Join();
+            }
+
+            //Task[] taskArray = new Task[threads];
+            //for (int i = 0; i < threads; i++)
+            //{
+            //    int index = i;
+            //    var myTask = new Task(() => { this.BuildSolution(projCount); });
+
+            //    taskArray[index] = myTask;
+            //    myTask.Start();
+            //}
+
+            //Task.WaitAll(taskArray);
         }
 
         public void BuildSolution(int projCount)
@@ -222,7 +235,15 @@ namespace BuildSolution
                     lock (list)
                     {
                         if (list.Count == 0) { break; }
-                        projIndex = list.RemoveAndGet(0);
+                        projIndex = list.FindIndex(x => { var projer = Projects.ProjectList[x]; return projer.NeedsToBeBuilt.HasValue && projer.NeedsToBeBuilt.Value; });
+                        if (projIndex != -1)
+                        {
+                            projIndex = list.RemoveAndGet(projIndex);
+                        }
+                        else
+                        {
+                            projIndex = list.RemoveAndGet(0);
+                        }
                     }
 
                     var proj = Projects.ProjectList[projIndex];
@@ -231,26 +252,7 @@ namespace BuildSolution
 
                     if (proj.ReadyToBuild && (bool)proj.NeedsToBeBuilt)
                     {
-                        Console.WriteLine(proj.ProjectPath + ": " + Helper.TimeFunction(() =>
-                        {
-  
-                            if (Monitor.TryEnter(msLock))
-                            {
-                                Console.WriteLine("starting to MS_build " + proj.ProjectPath.Name);
-                                var dog = Microsoft.Build.Evaluation.ProjectCollection.GlobalProjectCollection.LoadedProjects;
-                                new Microsoft.Build.Evaluation.Project(proj.ProjectPath.FullName).Build(); // I think default build should be good enough?
-
-                                proj.NeedsToBeBuilt = false;
-                                proj.HasBuilt = true;
-                                COUNTER++;
-
-                            }
-                            else
-                            {
-                                proj.NeedsToBeBuilt = null;
-                                ExecuteCommand(string.Format("{0} {1}", SolutionBuilder.CurPath, "\"" + proj.ProjectPath.FullName + "\""), projIndex);
-                            }
-                        }));
+                        this.RunCorrectExecuteCommand(proj, projIndex);
 
                         break;
                     }
@@ -276,36 +278,15 @@ namespace BuildSolution
                     {
                         if (aRefProjectHasBuilt || proj.NeedsToBeBuilt.Value)
                         {
-                            Console.WriteLine(proj.ProjectPath + ": " + Helper.TimeFunction(() =>
-                            {
-
-                                if (Monitor.TryEnter(msLock))
-                                {
-                                    Console.WriteLine("starting to MS_build " + proj.ProjectPath.Name);
-                                    var dog = Microsoft.Build.Evaluation.ProjectCollection.GlobalProjectCollection.LoadedProjects;
-                                    new Microsoft.Build.Evaluation.Project(proj.ProjectPath.FullName).Build(); // I think default build should be good enough?
-                                    proj.NeedsToBeBuilt = false;
-                                    proj.HasBuilt = true;
-                                    COUNTER++;
-                                }
-                                else
-                                {
-                                    proj.NeedsToBeBuilt = null;
-                                    ExecuteCommand(string.Format("{0} {1}", SolutionBuilder.CurPath, "\"" + proj.ProjectPath.FullName + "\""), projIndex);
-                                }
-                            }
-                            ));
+                            this.RunCorrectExecuteCommand(proj, projIndex);
 
                             break;
                         }
                         else
                         {
-                            lock (proj)
-                            {
-                                proj.NeedsToBeBuilt = false;
-                                proj.HasBuilt = false;
-                                lock (this.listLock) { COUNTER++; }
-                            }
+                            proj.NeedsToBeBuilt = false;
+                            proj.HasBuilt = false;
+                            lock (this.listLock) { COUNTER++; }
 
                             break;
                         }
@@ -336,6 +317,28 @@ namespace BuildSolution
             return dte.DTE.Solution;
         }
 
+        private void RunCorrectExecuteCommand(ProjectFile proj, int projIndex)
+        {
+            Console.WriteLine(proj.ProjectPath + ": " + Helper.TimeFunction(() =>
+            {
+                if (Monitor.TryEnter(msLock))
+                {
+                    Console.WriteLine("starting to MS_build " + proj.ProjectPath.Name);
+                    new Microsoft.Build.Evaluation.Project(proj.ProjectPath.FullName).Build();
+                    proj.NeedsToBeBuilt = false;
+                    proj.HasBuilt = true;
+                    lock (this.listLock) { COUNTER++; }
+                }
+                else
+                {
+                    proj.NeedsToBeBuilt = null;
+                    //ExecuteCommandOld(proj);
+                    ExecuteCommand(SolutionBuilder.CurPath, projIndex);
+                }
+            }
+            ));
+        }
+
         // called if you use an execute command that does not waitfor it to complete, this should be called on completion
         private void BuildProcessExited(object sender, System.EventArgs e, int projIndex)
         {
@@ -343,7 +346,7 @@ namespace BuildSolution
 
                 proj.NeedsToBeBuilt = false;
                 proj.HasBuilt = true;
-                COUNTER++; 
+                lock (this.listLock) { COUNTER++; }
             
         }
 
@@ -374,7 +377,7 @@ namespace BuildSolution
 
             proj.NeedsToBeBuilt = false;
             proj.HasBuilt = true;
-            COUNTER++;
+            lock (this.listLock) { COUNTER++; }
 
         }
 
@@ -387,8 +390,8 @@ namespace BuildSolution
             System.Diagnostics.ProcessStartInfo startInfo = new System.Diagnostics.ProcessStartInfo();
             startInfo.WindowStyle = System.Diagnostics.ProcessWindowStyle.Hidden;
             startInfo.WorkingDirectory = proj.ProjectPath.Directory.FullName;
-            startInfo.FileName = "CMD.exe";
-            startInfo.Arguments = "/c " + SolutionBuilder.CurPath + " " + proj.ReferenceCompileArg + " " + proj.TargetCompileArg + " " + "/out:" + proj.BuildProjectOutputPath + " " + "*.cs";//string.Join(" ", proj.ProjectClassPaths.Select(x => "\"" + x.FullName + "\""));//" *.cs";//+ " /maxcpucount:4 /p:BuildInParallel=true";
+            startInfo.FileName = SolutionBuilder.CurPath;//"CMD.exe";
+            startInfo.Arguments =  proj.ReferenceCompileArg + " " + proj.TargetCompileArg + " /out:" + proj.BuildProjectOutputPath + " /ruleset: \"C:\\Program Files (x86)\\Microsoft Visual Studio 14.0\\Team Tools\\Static Analysis Tools\\Rule Sets\\MinimumRecommendedRules.ruleset\" /subsystemversion:6.00 /resource:"  + proj.ResourceCompileArg +  " *.cs \"C:\\Users\\tacke\\AppData\\Local\\Temp\\.NETFramework,Version=v4.5.2.AssemblyAttributes.cs\"";//string.Join(" ", proj.ProjectClassPaths.Select(x => "\"" + x.FullName + "\""));//" *.cs";//+ " /maxcpucount:4 /p:BuildInParallel=true";
             process.StartInfo = startInfo;
             process.StartInfo.UseShellExecute = false;
             process.StartInfo.RedirectStandardOutput = true;
@@ -400,7 +403,7 @@ namespace BuildSolution
 
             proj.NeedsToBeBuilt = false;
             proj.HasBuilt = true;
-            COUNTER++;
+            lock (this.listLock) { COUNTER++; }
         }
 
         public void ExecuteCommand(string command, int projIndex)
@@ -411,14 +414,19 @@ namespace BuildSolution
             System.Diagnostics.Process process = new System.Diagnostics.Process();
             System.Diagnostics.ProcessStartInfo startInfo = new System.Diagnostics.ProcessStartInfo();
             startInfo.WindowStyle = System.Diagnostics.ProcessWindowStyle.Hidden;
+            startInfo.WorkingDirectory = proj.ProjectPath.DirectoryName;
             startInfo.FileName = "CMD.exe";
             startInfo.Arguments = "/c " + command + " /maxcpucount:4 /p:BuildInParallel=true";
             process.StartInfo = startInfo;
+            //process.StartInfo.UseShellExecute = false;
+            //process.StartInfo.RedirectStandardOutput = true;
             process.Start();
+            //string output = process.StandardOutput.ReadToEnd();
             process.WaitForExit();
+            //Console.WriteLine("output" + output);
             proj.NeedsToBeBuilt = false;
             proj.HasBuilt = true;
-            COUNTER++;
+            lock (this.listLock) { COUNTER++; }
 
         }
 
@@ -430,13 +438,13 @@ namespace BuildSolution
             System.Diagnostics.Process process = new System.Diagnostics.Process();
             System.Diagnostics.ProcessStartInfo startInfo = new System.Diagnostics.ProcessStartInfo();
             startInfo.WindowStyle = System.Diagnostics.ProcessWindowStyle.Hidden;
+            startInfo.WorkingDirectory = proj.ProjectPath.DirectoryName;
             startInfo.FileName = "CMD.exe";
-            startInfo.Arguments = "/c " + command; //+ " /maxcpucount:4 /p:BuildInParallel=true";
+            startInfo.Arguments = "/c " + command + " /maxcpucount:4 /p:BuildInParallel=true";
             process.StartInfo = startInfo;
             process.EnableRaisingEvents = true;
             process.Exited += (sender, e) => BuildProcessExited(sender, e, projIndex);
             process.Start();
         }
-
     }
 }
