@@ -6,6 +6,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using System.Xml;
+using Microsoft.Build.Execution;
 
 namespace BuildSolution
 {
@@ -19,10 +20,12 @@ namespace BuildSolution
             public static readonly string BuildOutputPath = "BuiltProjectOutputGroupKeyOutput";
             public static readonly string CompilePath = "Compile";
             public static readonly string Reference = "Reference";
+            public static readonly string ReferenceExplicit = "_ExplicitReference";
             public static readonly string PropOutputPath = "OutputPath";
             public static readonly string PropOutputFileName = "TargetFileName";
             public static readonly string ReferenceProject = "ProjectReference";
             public static readonly string PropAssemblyName = "AssemblyName";
+            public static readonly string FrameWorkDir = "_TargetFrameworkDirectories";
         }
 
         public FileInfo ProjectPath { get; set; }
@@ -50,6 +53,7 @@ namespace BuildSolution
         public ProjectFile(FileInfo file)
         {
             Project project = new Project(file.FullName); // item = metadata , directMetadata count > 0 . metadata[x] where name = HintPath then evaluatedInlcude of that
+            ProjectInstance projectInstance = new ProjectInstance(file.FullName);
 
             this.ProjectPath = file;
             var dirName = file.DirectoryName;
@@ -67,7 +71,7 @@ namespace BuildSolution
             foreach (var rp in projRefs)
             {
                 Project proj = new Project(Path.Combine(file.DirectoryName, rp.EvaluatedInclude));
-                var projDlls2 = proj.Items.Where(item => item.ItemType.Equals(ProjectItemTypes.Reference)).ToList();
+                var projDlls2 = proj.Items.Where(item => item.ItemType.Equals(ProjectItemTypes.Reference) || item.ItemType.Equals(ProjectItemTypes.ReferenceExplicit)).ToList();
                 if (projDlls2.Any() ) projDlls.AddRange(projDlls2);
             }
 

@@ -15,9 +15,11 @@ namespace BuildSolution
         /// </summary>
         public static ProjectFile[] ProjectList { get; set; }
 
-        public Projects()
+        public Projects() : this(true) {}
+
+        public Projects(bool runInParallel)
         {
-            PopulateAllProjects();
+            PopulateAllProjects(runInParallel);
         }
 
         /// <summary>
@@ -25,59 +27,62 @@ namespace BuildSolution
         /// projects and from a dll it is impossible to tell what project they came from. So we need all projects on the computer 
         /// to search through and match them to the appropiate project.
         /// </summary>
-        void PopulateAllProjects()
+        void PopulateAllProjects(bool runInParallel)
         {
             DirectoryInfo dir = new DirectoryInfo(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile));
-            int processorCount = Environment.ProcessorCount;
-            var dirFiInfos = dir.GetFileSystemInfos().ToList();
-            var dirInfos = new List<FileSystemInfo>[processorCount];
-            List<ProjectFile>[] projArray = new List<ProjectFile>[processorCount];
-
-            int interval = 0;
-            int j = -1;
-            for (int i = 0; i < dirFiInfos.Count; i++)
-            {
-                if (i >= interval)
-                {
-                    j++;
-                    projArray[j] = new List<ProjectFile>();
-               
-                    dirInfos[j] = new List<FileSystemInfo>();
-                    interval += (dirFiInfos.Count / 4) + 1;
-                }
-
-                dirInfos[j].Add(dirFiInfos[i]);
-            }
-            
-            
-            List<ProjectFile> tempProjectList2 = new List<ProjectFile>();
-
-            Console.WriteLine("searchFolder Normal time: " + Helper.TimeFunction(() => SearchFolder("*.csproj", dir, tempProjectList2)));
-
-
-
             List<ProjectFile> tempProjectList = new List<ProjectFile>();
 
-            Microsoft.Build.Evaluation.ProjectCollection.GlobalProjectCollection.UnloadAllProjects(); // ptryy sure this isn't needed, done sooner i think
-
-            Task[] taskArray = new Task[processorCount];
-
-            var watch = System.Diagnostics.Stopwatch.StartNew();
-            for (int i = 0; i < processorCount; i++)
+            if (!runInParallel)
             {
-                int index = i; //  If you don't set i to a local variable, it may be a differnt value when the thread starts
-                var myTask = new Task(() => { SearchFolderUsingInfos(".csproj", projArray[index], dirInfos[index].ToArray()); });
-                myTask.Start();
-                taskArray[index] = myTask;
+                Console.WriteLine("searchFolder Normal time: " + Helper.TimeFunction(() => SearchFolder("*.csproj", dir, tempProjectList)));
+            }
+            else
+            {
+                int processorCount = Environment.ProcessorCount;
+                var dirFiInfos = dir.GetFileSystemInfos().ToList();
+                var dirInfos = new List<FileSystemInfo>[processorCount];
+                List<ProjectFile>[] projArray = new List<ProjectFile>[processorCount];
+
+                int interval = 0;
+                int j = -1;
+                for (int i = 0; i < dirFiInfos.Count; i++)
+                {
+                    if (i >= interval)
+                    {
+                        j++;
+                        projArray[j] = new List<ProjectFile>();
+
+                        dirInfos[j] = new List<FileSystemInfo>();
+                        interval += (dirFiInfos.Count / 4) + 1;
+                    }
+
+                    dirInfos[j].Add(dirFiInfos[i]);
+                }
+
+                var watch = System.Diagnostics.Stopwatch.StartNew();
+
+                var threadList = new List<System.Threading.Thread>();
+                for (int i = 0; i < processorCount; i++)
+                {
+                    int index = i;
+                    System.Threading.Thread t = new System.Threading.Thread(new System.Threading.ThreadStart(() => SearchFolderUsingInfos(".csproj", projArray[index], dirInfos[index].ToArray())));
+                    t.Start();
+                    threadList.Add(t);
+                }
+
+                foreach (var t in threadList)
+                {
+                    t.Join();
+                }
+
+                projArray.RunFuncForEach(x => tempProjectList.AddRange(x));
+
+                watch.Stop();
+
+                Console.WriteLine("searchFolder Parallel time: " + watch.ElapsedMilliseconds / 1000d);
             }
 
-            Task.WaitAll(taskArray);
-            projArray.RunFuncForEach(x => tempProjectList.AddRange(x));
-
-            watch.Stop();
             Projects.ProjectList = tempProjectList.ToArray();
-
-            Console.WriteLine("searchFolder Parallel time: " + watch.ElapsedMilliseconds / 1000d);
         }
 
         /// <summary>

@@ -11,6 +11,9 @@ using EnvDTE80;
 using System.Diagnostics;
 using System.Runtime.InteropServices;
 using System.Threading;
+using Microsoft.Build.Logging;
+using Microsoft.Build.Execution;
+using Microsoft.Build.Framework;
 
 namespace BuildSolution
 {
@@ -25,13 +28,14 @@ namespace BuildSolution
         Object msLock = new object();
         public int COUNTER = 0;
 
-        public struct MSBuildLock {
+        public struct MSBuildLock
+        {
             public bool locked { get; set; }
             public MSBuildLock(bool lockedVal) { locked = lockedVal; }
         };
 
         public MSBuildLock msBuildLock = new MSBuildLock(false);
-       
+
         /// <summary>
         /// functions inside this are from referenced dll's. changing output of these dll functions and running Solution Builder
         /// is an easy way to 100% verify that building the projects that were out of date worked.
@@ -52,7 +56,7 @@ namespace BuildSolution
             this.solutionInfo = dte.DTE.Solution;
             this.ProjectFiles = new List<int>();
             this.BaseProjectFiles = new List<int>();
-            
+
             List<string> solutionProjects = dte.DTE.Solution.Projects.Cast<EnvDTE.Project>().Select(x => x.FullName).ToList();
 
             solutionProjects.RunFuncForEach(projString => {
@@ -61,7 +65,7 @@ namespace BuildSolution
             });
 
             this.ProjectQueues = new List<int>[this.BaseProjectFiles.Count];
-            for (int i = 0; i <this.BaseProjectFiles.Count; i++) { this.ProjectQueues[i] = new List<int>(); }
+            for (int i = 0; i < this.BaseProjectFiles.Count; i++) { this.ProjectQueues[i] = new List<int>(); }
 
             this.PopulateSolutionProjects(this.BaseProjectFiles, null);
         }
@@ -105,7 +109,7 @@ namespace BuildSolution
                 {
                     this.PopulateSolutionProjects(addedProjects, index);
 
-                    this.ProjectQueues[index].Add(projIndex); 
+                    this.ProjectQueues[index].Add(projIndex);
                 }
                 else
                 {
@@ -154,10 +158,22 @@ namespace BuildSolution
                         return true;
                     }
 
-                    return false;});
+                    return false;
+                });
 
                 counter += list.Count;
             }
+
+            Console.WriteLine("getBuildParams time: " + Helper.TimeFunction(() => {
+                foreach (var list in this.ProjectQueues)
+                {
+                    foreach (var projIndex in list)
+                    {
+                        var proj = Projects.ProjectList[projIndex];
+                        GetBuildParams(proj);
+                    }
+                } }
+                ));
 
             int processorCount = Environment.ProcessorCount;
             Console.WriteLine("buildSolution Parallel time: " + Helper.TimeFunction(() =>
@@ -166,6 +182,86 @@ namespace BuildSolution
             Console.WriteLine("projects all built! \n");
 
             // TestDllRefFunctions();
+        }
+
+        public static void GetBuildParams(ProjectFile proj)
+        {
+            ConsoleLogger logger = new ConsoleLogger(LoggerVerbosity.Normal);
+            BuildManager manager = BuildManager.DefaultBuildManager;
+
+            ProjectInstance projectInstance = new ProjectInstance(proj.ProjectPath.FullName);
+
+            var result = manager.Build(
+                new BuildParameters() {
+                    DetailedSummary = true,
+                    Loggers = new List<ILogger>() { logger }
+                },
+                new BuildRequestData(projectInstance, new string[]
+                {
+                    "ResolveProjectReferences",
+                    "ResolveAssemblyReferences"
+                })
+            );
+
+            proj.ReferenceCompileArg = string.Empty;
+            proj.ReferencePaths = new List<FileInfo>();
+            var projRefs = PrintResultItems(proj, result, "ResolveProjectReferences");
+            var projAssemRefs = PrintResultItems(proj, result, "ResolveAssemblyReferences");
+        }
+
+        public static List<string> PrintResultItems(ProjectFile proj,BuildResult result, string targetName)
+        {
+            List<string> ret = new List<string>();
+            var buildResult = result.ResultsByTarget[targetName];
+            var buildResultItems = buildResult.Items;
+
+            if (buildResultItems.Length == 0)
+            {
+                return ret;
+            }
+
+
+
+
+            //var buildResList = buildResultItems.Select(x => new FileInfo(x.ItemSpec)).ToList();//Where( fInfo => fInfo.FullName
+
+            //List<string> buildResTempList = new List<string>();
+            //int listSize = buildResList.Count;
+            //for (int i = 0; i < listSize; i ++)
+            //{
+            //    var item = buildResList.RemoveAndGet(0);
+            //    buildResList.RemoveAll(x => x.Name.Equals(item.Name));
+            //    buildResList.Add(item);
+            //}
+
+            //foreach (var item in buildResList)
+            //{
+            //    proj.ReferenceCompileArg += " /r:" + "\"" + item.FullName + "\"";
+            //    proj.ReferencePaths.Add(new FileInfo(item.FullName));
+            //}
+            
+            //string heyup = "lakjdsfjdlsk";
+
+
+
+
+            //foreach (var item in buildResTempList)
+            //{
+            //    ret.Add(string.Format("{0}", item.));
+            //    proj.ReferenceCompileArg += " /r:" + "\"" + item.ItemSpec + "\"";
+            //    proj.ReferencePaths.Add(new FileInfo(item.ItemSpec));
+            //    //Console.WriteLine("{0} reference: {1}", targetName, item.ItemSpec);
+            //}
+
+            foreach (var item in buildResultItems)
+            {
+                ret.Add(string.Format("{0}", item.ItemSpec));
+                proj.ReferenceCompileArg += " /r:" + "\"" + item.ItemSpec + "\"";
+                proj.ReferencePaths.Add(new FileInfo(item.ItemSpec));
+                //Console.WriteLine("{0} reference: {1}", targetName, item.ItemSpec);
+            }
+
+            return ret;
         }
 
         // returns true if any project passed in built, false otherwise
@@ -177,8 +273,8 @@ namespace BuildSolution
                 var proj = Projects.ProjectList[projIndex];
                 if (this.BuildSolution(proj.ReferenceProjects) || (bool)proj.NeedsToBeBuilt)
                 {
-                    Console.WriteLine(proj.ProjectPath + ": " + Helper.TimeFunction(() =>
-                    { new Microsoft.Build.Evaluation.Project(proj.ProjectPath.FullName).Build(); // I think default build should be good enough?
+                    Console.WriteLine(proj.ProjectPath + ": " + Helper.TimeFunction(() => {
+                        new Microsoft.Build.Evaluation.Project(proj.ProjectPath.FullName).Build(); // I think default build should be good enough?
                     }));
 
                     proj.NeedsToBeBuilt = false;
@@ -197,7 +293,7 @@ namespace BuildSolution
         private void BuildSolution(int projCount, int threads)
         {
             var threadList = new List<System.Threading.Thread>();
-            for (int i = 0; i < threads -1; i++)
+            for (int i = 0; i < threads; i++)
             {
                 System.Threading.Thread t = new System.Threading.Thread(new System.Threading.ThreadStart(() => BuildSolution(projCount)));
                 t.Start();
@@ -252,7 +348,8 @@ namespace BuildSolution
 
                     if (proj.ReadyToBuild && (bool)proj.NeedsToBeBuilt)
                     {
-                        this.RunCorrectExecuteCommand(proj, projIndex);
+                        //this.ExecuteCommand(proj);
+                        this.RunCorrectExecuteCommandT(proj, projIndex);
 
                         break;
                     }
@@ -278,7 +375,7 @@ namespace BuildSolution
                     {
                         if (aRefProjectHasBuilt || proj.NeedsToBeBuilt.Value)
                         {
-                            this.RunCorrectExecuteCommand(proj, projIndex);
+                            this.RunCorrectExecuteCommandT(proj, projIndex);
 
                             break;
                         }
@@ -298,7 +395,7 @@ namespace BuildSolution
                     }
 
                     i++;
-                    
+
                 }
             }
         }
@@ -319,12 +416,26 @@ namespace BuildSolution
 
         private void RunCorrectExecuteCommand(ProjectFile proj, int projIndex)
         {
-            Console.WriteLine(proj.ProjectPath + ": " + Helper.TimeFunction(() =>
-            {
+            //ExecuteCommandCSharp(proj);
+        }
+
+        private void RunCorrectExecuteCommandT(ProjectFile proj, int projIndex)
+        {
+            //            Console.WriteLine("starting to MS_build " + proj.ProjectPath.Name);
+            //new Microsoft.Build.Evaluation.Project(proj.ProjectPath.FullName).Build();
+            //proj.NeedsToBeBuilt = false;
+            //proj.HasBuilt = true;
+            //lock (this.listLock) { COUNTER++; }
+            //return;
+
+            Console.WriteLine(proj.ProjectPath + ": " + Helper.TimeFunction(() => {
+                ExecuteCommand(proj);
+                /*
                 if (Monitor.TryEnter(msLock))
                 {
                     Console.WriteLine("starting to MS_build " + proj.ProjectPath.Name);
-                    new Microsoft.Build.Evaluation.Project(proj.ProjectPath.FullName).Build();
+                    var projToBuild = new Microsoft.Build.Evaluation.Project(proj.ProjectPath.FullName);
+                    projToBuild.Build();
                     proj.NeedsToBeBuilt = false;
                     proj.HasBuilt = true;
                     lock (this.listLock) { COUNTER++; }
@@ -335,6 +446,7 @@ namespace BuildSolution
                     //ExecuteCommandOld(proj);
                     ExecuteCommand(SolutionBuilder.CurPath, projIndex);
                 }
+                */
             }
             ));
         }
@@ -344,10 +456,10 @@ namespace BuildSolution
         {
             var proj = Projects.ProjectList[projIndex];
 
-                proj.NeedsToBeBuilt = false;
-                proj.HasBuilt = true;
-                lock (this.listLock) { COUNTER++; }
-            
+            proj.NeedsToBeBuilt = false;
+            proj.HasBuilt = true;
+            lock (this.listLock) { COUNTER++; }
+
         }
 
         /// <summary>
@@ -362,8 +474,9 @@ namespace BuildSolution
             System.Diagnostics.ProcessStartInfo startInfo = new System.Diagnostics.ProcessStartInfo();
             startInfo.WindowStyle = System.Diagnostics.ProcessWindowStyle.Hidden;
             startInfo.WorkingDirectory = proj.ProjectPath.Directory.FullName;
-            startInfo.FileName = "cmd.exe";
-            startInfo.Arguments = "/c  \"\"C:\\Program Files (x86)\\Microsoft Visual Studio 14.0\\Common7\\Tools\\VsDevCmd.bat\"" + " && csc " + " " + proj.ReferenceCompileArg + " " + proj.TargetCompileArg + " /out:\"" + proj.BuildProjectOutputPath + "\" *.cs\"";//string.Join(" ", proj.ProjectClassPaths.Select(x => "\"" + x.FullName + "\""));//" *.cs";//+ " /maxcpucount:4 /p:BuildInParallel=true";
+            startInfo.FileName = SolutionBuilder.CscBuildPath;
+            startInfo.Arguments = proj.ReferenceCompileArg + " " + proj.TargetCompileArg + " /out:\"" + proj.BuildProjectOutputPath + "\" *.cs\"";//string.Join(" ", proj.ProjectClassPaths.Select(x => "\"" + x.FullName + "\""));//" *.cs";//+ " /maxcpucount:4 /p:BuildInParallel=true";
+            //startInfo.Arguments = "/c  \"\"C:\\Program Files (x86)\\Microsoft Visual Studio 14.0\\Common7\\Tools\\VsDevCmd.bat\"" + " && csc " + " " + proj.ReferenceCompileArg + " " + proj.TargetCompileArg + " /out:\"" + proj.BuildProjectOutputPath + "\" *.cs\"";//string.Join(" ", proj.ProjectClassPaths.Select(x => "\"" + x.FullName + "\""));//" *.cs";//+ " /maxcpucount:4 /p:BuildInParallel=true";
             Console.WriteLine(startInfo.Arguments);
 
             process.StartInfo = startInfo;
@@ -391,7 +504,7 @@ namespace BuildSolution
             startInfo.WindowStyle = System.Diagnostics.ProcessWindowStyle.Hidden;
             startInfo.WorkingDirectory = proj.ProjectPath.Directory.FullName;
             startInfo.FileName = SolutionBuilder.CurPath;//"CMD.exe";
-            startInfo.Arguments =  proj.ReferenceCompileArg + " " + proj.TargetCompileArg + " /out:" + proj.BuildProjectOutputPath + " /ruleset: \"C:\\Program Files (x86)\\Microsoft Visual Studio 14.0\\Team Tools\\Static Analysis Tools\\Rule Sets\\MinimumRecommendedRules.ruleset\" /subsystemversion:6.00 /resource:"  + proj.ResourceCompileArg +  " *.cs \"C:\\Users\\tacke\\AppData\\Local\\Temp\\.NETFramework,Version=v4.5.2.AssemblyAttributes.cs\"";//string.Join(" ", proj.ProjectClassPaths.Select(x => "\"" + x.FullName + "\""));//" *.cs";//+ " /maxcpucount:4 /p:BuildInParallel=true";
+            startInfo.Arguments = proj.ReferenceCompileArg + " " + proj.TargetCompileArg + " /out:" + proj.BuildProjectOutputPath + " /ruleset: \"C:\\Program Files (x86)\\Microsoft Visual Studio 14.0\\Team Tools\\Static Analysis Tools\\Rule Sets\\MinimumRecommendedRules.ruleset\" /subsystemversion:6.00 /resource:" + proj.ResourceCompileArg + " *.cs \"C:\\Users\\tacke\\AppData\\Local\\Temp\\.NETFramework,Version=v4.5.2.AssemblyAttributes.cs\"";//string.Join(" ", proj.ProjectClassPaths.Select(x => "\"" + x.FullName + "\""));//" *.cs";//+ " /maxcpucount:4 /p:BuildInParallel=true";
             process.StartInfo = startInfo;
             process.StartInfo.UseShellExecute = false;
             process.StartInfo.RedirectStandardOutput = true;
@@ -406,6 +519,29 @@ namespace BuildSolution
             lock (this.listLock) { COUNTER++; }
         }
 
+        public void ExecuteCommandCSharp(ProjectFile proj)
+        {
+            Console.WriteLine("starting to build " + proj.ProjectPath.Name);
+
+            System.Diagnostics.Process process = new System.Diagnostics.Process();
+            System.Diagnostics.ProcessStartInfo startInfo = new System.Diagnostics.ProcessStartInfo();
+            startInfo.WindowStyle = System.Diagnostics.ProcessWindowStyle.Hidden;
+            startInfo.WorkingDirectory = proj.ProjectPath.DirectoryName;
+            startInfo.FileName = @"C:\Users\tacke\Documents\visual studio 2015\Projects\JustBuild\JustBuild\bin\Debug\JustBuild.exe";
+            startInfo.Arguments = "\"" + proj.ProjectPath.FullName + "\"";
+            startInfo.UseShellExecute = false;
+            process.StartInfo = startInfo;
+
+
+            process.Start();
+            process.WaitForExit();
+
+            proj.NeedsToBeBuilt = false;
+            proj.HasBuilt = true;
+            lock (this.listLock) { COUNTER++; }
+
+        }
+
         public void ExecuteCommand(string command, int projIndex)
         {
             var proj = Projects.ProjectList[projIndex];
@@ -416,7 +552,7 @@ namespace BuildSolution
             startInfo.WindowStyle = System.Diagnostics.ProcessWindowStyle.Hidden;
             startInfo.WorkingDirectory = proj.ProjectPath.DirectoryName;
             startInfo.FileName = "CMD.exe";
-            startInfo.Arguments = "/c " + command + " /maxcpucount:4 /p:BuildInParallel=true";
+            startInfo.Arguments = "/c " + command + " " + proj.ProjectPath.Name + " /maxcpucount:4 /p:BuildInParallel=true";
             process.StartInfo = startInfo;
             //process.StartInfo.UseShellExecute = false;
             //process.StartInfo.RedirectStandardOutput = true;
